@@ -26,9 +26,6 @@
     
     self.waveformView.asset = asset;
     self.waveformView.progress = 0.5;
-    
-    [self.waveformView generateWaveforms];
-
 }
 
 - (void)didReceiveMemoryWarning
