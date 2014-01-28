@@ -19,9 +19,10 @@
 {
     [super viewDidLoad];
 
-    self.waveformView.normalColor = [UIColor blueColor];
-    self.waveformView.progressColor = [UIColor redColor];
+    self.waveformView.normalColor = [UIColor colorWithRed:0.8 green:0.3 blue:0.3 alpha:1];
+    self.waveformView.progressColor = [UIColor colorWithRed:1 green:0.2 blue:0.2 alpha:1];
     AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:[[NSBundle mainBundle] URLForResource:@"test" withExtension:@"m4a"] options:nil];
+    self.waveformView.alpha = 0.8;
     
     self.waveformView.asset = asset;
     self.waveformView.progress = 0.5;

@@ -15,7 +15,7 @@
                             <view contentMode="scaleToFill" id="0cn-ms-yr2" customClass="SCWaveformView">
                                 <rect key="frame" x="0.0" y="229" width="320" height="109"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
-                                <color key="backgroundColor" white="0.33333333333333331" alpha="1" colorSpace="calibratedWhite"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                             </view>
                             <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" id="x0p-YQ-erD">
                                 <rect key="frame" x="-2" y="362" width="324" height="34"/>
@@ -25,7 +25,7 @@
                                 </connections>
                             </slider>
                         </subviews>
-                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <color key="backgroundColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
                     </view>
                     <connections>
                         <outlet property="waveformView" destination="0cn-ms-yr2" id="W7b-yF-w4S"/>
