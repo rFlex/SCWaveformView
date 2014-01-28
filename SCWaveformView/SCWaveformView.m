@@ -84,7 +84,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 }
 
-+ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size
++ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled
 {
     if (asset == nil) {
         return;
@@ -131,7 +131,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
         channelCount = fmtDesc->mChannelsPerFrame;
     }
     
-    CGContextSetAllowsAntialiasing(context, NO);
+    CGContextSetAllowsAntialiasing(context, antialiasingEnabled);
     CGContextSetLineWidth(context, 1.0);
     CGContextSetStrokeColorWithColor(context, color.CGColor);
     CGContextSetFillColorWithColor(context, color.CGColor);
@@ -198,12 +198,12 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 }
 
-+ (UIImage*)generateWaveformImage:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size
++ (UIImage*)generateWaveformImage:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled
 {
     CGFloat ratio = [UIScreen mainScreen].scale;
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width * ratio, size.height * ratio), NO, 1);
     
-    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() asset:asset withColor:color andSize:size];
+    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() asset:asset withColor:color andSize:size antialiasingEnabled:antialiasingEnabled];
     
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -233,7 +233,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGRect rect = self.bounds;
     
     if (self.generatedNormalImage == nil && self.asset) {
-        self.generatedNormalImage = [SCWaveformView generateWaveformImage:self.asset withColor:self.normalColor andSize:CGSizeMake(rect.size.width, rect.size.height)];
+        self.generatedNormalImage = [SCWaveformView generateWaveformImage:self.asset withColor:self.normalColor andSize:CGSizeMake(rect.size.width, rect.size.height) antialiasingEnabled:self.antialiasingEnabled];
         _normalColorDirty = NO;
     }
     
@@ -329,6 +329,16 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 - (void)setGeneratedProgressImage:(UIImage *)generatedProgressImage
 {
     _progressImageView.image = generatedProgressImage;
+}
+
+- (void)setAntialiasingEnabled:(BOOL)antialiasingEnabled
+{
+    if (_antialiasingEnabled != antialiasingEnabled) {
+        _antialiasingEnabled = antialiasingEnabled;
+        self.generatedProgressImage = nil;
+        self.generatedNormalImage = nil;
+        [self setNeedsDisplay];        
+    }
 }
 
 @end

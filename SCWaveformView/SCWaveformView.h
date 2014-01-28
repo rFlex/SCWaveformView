@@ -15,7 +15,7 @@
 @property (strong, readwrite, nonatomic) UIColor *normalColor;
 @property (strong, readwrite, nonatomic) UIColor *progressColor;
 @property (assign, readwrite, nonatomic) CGFloat progress;
-//@property (assign, readwrite, nonatomic) BOOL enableAntialiasing;
+@property (assign, readwrite, nonatomic) BOOL antialiasingEnabled;
 
 @property (readwrite, nonatomic) UIImage *generatedNormalImage;
 @property (readwrite, nonatomic) UIImage *generatedProgressImage;
@@ -25,9 +25,9 @@
 - (void)generateWaveforms;
 
 // Render the waveform on a specified context
-+ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size;
++ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled;
 
 // Generate a waveform image for an asset
-+ (UIImage*)generateWaveformImage:(AVAsset*)asset withColor:(UIColor*)color andSize:(CGSize)size;
++ (UIImage*)generateWaveformImage:(AVAsset*)asset withColor:(UIColor*)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled;
 
 @end
