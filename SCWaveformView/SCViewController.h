@@ -12,5 +12,6 @@
 @interface SCViewController : UIViewController
 
 @property (weak, nonatomic) IBOutlet SCWaveformView *waveformView;
+- (IBAction)sliderProgressChanged:(id)sender;
 
 @end

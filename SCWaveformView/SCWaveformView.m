@@ -261,6 +261,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGFloat progressWidth = bs.size.width * _progress;
     _cropProgressView.frame = CGRectMake(0, 0, progressWidth, bs.size.height);
     _cropNormalView.frame = CGRectMake(progressWidth, 0, bs.size.width - progressWidth, bs.size.height);
+    _normalImageView.frame = CGRectMake(-progressWidth, 0, bs.size.width, bs.size.height);
 }
 
 - (void)layoutSubviews {
@@ -269,6 +270,12 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGRect bs = self.bounds;
     _normalImageView.frame = bs;
     _progressImageView.frame = bs;
+    
+    // If the size is now bigger than the generated images
+    if (bs.size.width > self.generatedNormalImage.size.width) {
+        self.generatedNormalImage = nil;
+        self.generatedProgressImage = nil;
+    }
     
     [self applyProgressToSubviews];
 }

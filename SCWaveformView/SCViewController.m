@@ -24,7 +24,7 @@
     AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:[[NSBundle mainBundle] URLForResource:@"test" withExtension:@"m4a"] options:nil];
     
     self.waveformView.asset = asset;
-    self.waveformView.progress = 0.2;
+    self.waveformView.progress = 0.5;
     
     [self.waveformView generateWaveforms];
 
@@ -33,6 +33,11 @@
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];
+}
+
+- (IBAction)sliderProgressChanged:(UISlider*)sender
+{
+    self.waveformView.progress = sender.value;
 }
 
 @end
