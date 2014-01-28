@@ -15,6 +15,7 @@
 @property (strong, readwrite, nonatomic) UIColor *normalColor;
 @property (strong, readwrite, nonatomic) UIColor *progressColor;
 @property (assign, readwrite, nonatomic) CGFloat progress;
+//@property (assign, readwrite, nonatomic) BOOL enableAntialiasing;
 
 @property (readwrite, nonatomic) UIImage *generatedNormalImage;
 @property (readwrite, nonatomic) UIImage *generatedProgressImage;

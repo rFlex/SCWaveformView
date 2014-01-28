@@ -232,20 +232,23 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 {
     CGRect rect = self.bounds;
     
-    if (self.asset != nil) {
-        if (self.generatedNormalImage == nil) {
-            self.generatedNormalImage = [SCWaveformView generateWaveformImage:self.asset withColor:self.normalColor andSize:CGSizeMake(rect.size.width, rect.size.height)];
-        } else if (_normalColorDirty) {
-            self.generatedNormalImage = [SCWaveformView recolorizeImage:self.generatedNormalImage withColor:self.normalColor];
-        }
-        
-        if ((self.generatedProgressImage == nil || _progressColorDirty) && self.generatedNormalImage != nil) {
-            self.generatedProgressImage = [SCWaveformView recolorizeImage:self.generatedNormalImage withColor:self.progressColor];
-        }
-        
-        _progressColorDirty = NO;
+    if (self.generatedNormalImage == nil && self.asset) {
+        self.generatedNormalImage = [SCWaveformView generateWaveformImage:self.asset withColor:self.normalColor andSize:CGSizeMake(rect.size.width, rect.size.height)];
         _normalColorDirty = NO;
     }
+    
+    if (self.generatedNormalImage != nil) {
+        if (_normalColorDirty) {
+            self.generatedNormalImage = [SCWaveformView recolorizeImage:self.generatedNormalImage withColor:self.normalColor];
+            _normalColorDirty = NO;
+        }
+        
+        if (_progressColorDirty || self.generatedProgressImage == nil) {
+            self.generatedProgressImage = [SCWaveformView recolorizeImage:self.generatedNormalImage withColor:self.progressColor];
+            _progressColorDirty = NO;
+        }
+    }
+ 
 }
 
 - (void)drawRect:(CGRect)rect
