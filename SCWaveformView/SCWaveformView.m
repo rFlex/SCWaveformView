@@ -217,7 +217,10 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGRect imageRect = CGRectMake(0, 0, image.size.width, image.size.height);
     UIGraphicsBeginImageContextWithOptions(image.size, NO, image.scale);
     
-    CGContextDrawImage(UIGraphicsGetCurrentContext(), imageRect, image.CGImage);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    CGContextTranslateCTM(context, 0.0, image.size.height);
+    CGContextScaleCTM(context, 1.0, -1.0);
+    CGContextDrawImage(context, imageRect, image.CGImage);
     [color set];
     UIRectFillUsingBlendMode(imageRect, kCGBlendModeSourceAtop);
     
