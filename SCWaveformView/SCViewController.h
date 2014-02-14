@@ -12,6 +12,7 @@
 @interface SCViewController : UIViewController
 
 @property (weak, nonatomic) IBOutlet SCWaveformView *waveformView;
+- (IBAction)changeColorsTapped:(id)sender;
 - (IBAction)sliderProgressChanged:(id)sender;
 
 @end

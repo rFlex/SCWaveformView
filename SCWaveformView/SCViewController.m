@@ -33,6 +33,12 @@
     [super didReceiveMemoryWarning];
 }
 
+- (IBAction)changeColorsTapped:(id)sender {
+    CGFloat hue = ((CGFloat)arc4random_uniform(10000)) / 10000.0;
+    self.waveformView.progressColor = [UIColor colorWithHue:hue saturation:1 brightness:1 alpha:1];
+    self.waveformView.normalColor = [UIColor colorWithHue:hue saturation:0.5 brightness:1 alpha:1];
+}
+
 - (IBAction)sliderProgressChanged:(UISlider*)sender
 {
     self.waveformView.progress = sender.value;

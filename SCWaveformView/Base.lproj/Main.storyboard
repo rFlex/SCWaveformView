@@ -24,6 +24,16 @@
                                     <action selector="sliderProgressChanged:" destination="vXZ-lx-hvc" eventType="valueChanged" id="hgL-Qb-FQL"/>
                                 </connections>
                             </slider>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" id="6xb-qC-bdV">
+                                <rect key="frame" x="20" y="467" width="280" height="30"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                                <state key="normal" title="Change colors">
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="changeColorsTapped:" destination="vXZ-lx-hvc" eventType="touchUpInside" id="dMX-n9-YuV"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
                     </view>
