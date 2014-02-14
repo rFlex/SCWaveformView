@@ -12,6 +12,8 @@ Main features:
 
 <img src="http://i.imgur.com/dVGhYBk.png" width=500>
 
+This project is inspired from https://github.com/fulldecent/FDWaveformView
+
 Example
 -------
 
