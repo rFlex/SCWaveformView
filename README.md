@@ -14,6 +14,14 @@ Main features:
 
 This project is inspired from https://github.com/fulldecent/FDWaveformView
 
+Podfile
+----------------
+
+If you are using cocoapods, you can use this project with the following Podfile
+
+    platform :ios, '7.0'
+    pod "SCWaveformView", "1.0.0"
+
 Example
 -------
 
