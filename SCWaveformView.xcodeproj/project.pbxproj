@@ -43,7 +43,7 @@
 		DC2C7A3C1892A0770085043D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		DC2C7A3E1892A0770085043D /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		DC2C7A401892A0770085043D /* SCWaveformView-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SCWaveformView-Prefix.pch"; sourceTree = "<group>"; };
-		DC2C7A411892A0770085043D /* SCAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SCAppDelegate.h; path = SCWaveformView/SCAppDelegate.h; sourceTree = "<group>"; };
+		DC2C7A411892A0770085043D /* SCAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SCAppDelegate.h; sourceTree = "<group>"; };
 		DC2C7A421892A0770085043D /* SCAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SCAppDelegate.m; sourceTree = "<group>"; };
 		DC2C7A451892A0770085043D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		DC2C7A471892A0770085043D /* SCViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SCViewController.h; sourceTree = "<group>"; };
@@ -86,8 +86,7 @@
 			isa = PBXGroup;
 			children = (
 				DC2C7A6B1892A84F0085043D /* test.m4a */,
-				DC2C7A411892A0770085043D /* SCAppDelegate.h */,
-				DC2C7A381892A0770085043D /* SCWaveformView */,
+				DC2C7A381892A0770085043D /* Sources */,
 				DC2C7A311892A0770085043D /* Frameworks */,
 				DC2C7A301892A0770085043D /* Products */,
 			);
@@ -114,9 +113,10 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		DC2C7A381892A0770085043D /* SCWaveformView */ = {
+		DC2C7A381892A0770085043D /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				DC2C7A411892A0770085043D /* SCAppDelegate.h */,
 				DC2C7A421892A0770085043D /* SCAppDelegate.m */,
 				DC2C7A441892A0770085043D /* Main.storyboard */,
 				DC2C7A471892A0770085043D /* SCViewController.h */,
@@ -126,7 +126,7 @@
 				DC2C7A671892A0AD0085043D /* SCWaveformView.h */,
 				DC2C7A681892A0AD0085043D /* SCWaveformView.m */,
 			);
-			path = SCWaveformView;
+			path = Sources;
 			sourceTree = "<group>";
 		};
 		DC2C7A391892A0770085043D /* Supporting Files */ = {
@@ -360,8 +360,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SCWaveformView/SCWaveformView-Prefix.pch";
-				INFOPLIST_FILE = "SCWaveformView/SCWaveformView-Info.plist";
+				GCC_PREFIX_HEADER = "Sources/SCWaveformView-Prefix.pch";
+				INFOPLIST_FILE = "Sources/SCWaveformView-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
@@ -373,8 +373,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SCWaveformView/SCWaveformView-Prefix.pch";
-				INFOPLIST_FILE = "SCWaveformView/SCWaveformView-Info.plist";
+				GCC_PREFIX_HEADER = "Sources/SCWaveformView-Prefix.pch";
+				INFOPLIST_FILE = "Sources/SCWaveformView-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				WRAPPER_EXTENSION = app;
 			};
