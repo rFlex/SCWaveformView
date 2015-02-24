@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
+#import "SCWaveformCache.h"
 
 @interface SCWaveformView : UIView
 
@@ -26,10 +27,24 @@
 // instead of doing it in the next draw operation
 - (void)generateWaveforms;
 
-// Render the waveform on a specified context
-+ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled;
+/**
+ Render the waveform in the given context
+ */
++ (BOOL)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange;
 
-// Generate a waveform image for an asset
-+ (UIImage*)generateWaveformImage:(AVAsset*)asset withColor:(UIColor*)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled;
+/**
+ Returns the waveform as UIImage
+ */
++ (UIImage *)generateWaveformImageWithAsset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange;
+
+/**
+ Render the waveform in the given context using a cache that can be used later to make the rendering faster
+ */
++ (BOOL)renderWaveformInContext:(CGContextRef)context cache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange;
+
+/**
+ Returns the waveform as UIImage using a cache that can be used later to make the rendering faster
+ */
++ (UIImage *)generateWaveformImageWithCache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange;
 
 @end

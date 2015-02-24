@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		DC27B75E1A9D0C80003DA2CB /* SCScrollableWaveformView.m in Sources */ = {isa = PBXBuildFile; fileRef = DC27B75D1A9D0C80003DA2CB /* SCScrollableWaveformView.m */; };
+		DC27B7611A9D2649003DA2CB /* SCWaveformCache.m in Sources */ = {isa = PBXBuildFile; fileRef = DC27B7601A9D2649003DA2CB /* SCWaveformCache.m */; };
 		DC2C7A331892A0770085043D /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC2C7A321892A0770085043D /* Foundation.framework */; };
 		DC2C7A351892A0770085043D /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC2C7A341892A0770085043D /* CoreGraphics.framework */; };
 		DC2C7A371892A0770085043D /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC2C7A361892A0770085043D /* UIKit.framework */; };
@@ -38,6 +39,8 @@
 /* Begin PBXFileReference section */
 		DC27B75C1A9D0C80003DA2CB /* SCScrollableWaveformView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SCScrollableWaveformView.h; sourceTree = "<group>"; };
 		DC27B75D1A9D0C80003DA2CB /* SCScrollableWaveformView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SCScrollableWaveformView.m; sourceTree = "<group>"; };
+		DC27B75F1A9D2649003DA2CB /* SCWaveformCache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SCWaveformCache.h; sourceTree = "<group>"; };
+		DC27B7601A9D2649003DA2CB /* SCWaveformCache.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SCWaveformCache.m; sourceTree = "<group>"; };
 		DC2C7A2F1892A0770085043D /* SCWaveformView.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SCWaveformView.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC2C7A321892A0770085043D /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		DC2C7A341892A0770085043D /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
@@ -130,6 +133,8 @@
 				DC2C7A681892A0AD0085043D /* SCWaveformView.m */,
 				DC27B75C1A9D0C80003DA2CB /* SCScrollableWaveformView.h */,
 				DC27B75D1A9D0C80003DA2CB /* SCScrollableWaveformView.m */,
+				DC27B75F1A9D2649003DA2CB /* SCWaveformCache.h */,
+				DC27B7601A9D2649003DA2CB /* SCWaveformCache.m */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -244,6 +249,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DC2C7A431892A0770085043D /* SCAppDelegate.m in Sources */,
+				DC27B7611A9D2649003DA2CB /* SCWaveformCache.m in Sources */,
 				DC27B75E1A9D0C80003DA2CB /* SCScrollableWaveformView.m in Sources */,
 				DC2C7A491892A0770085043D /* SCViewController.m in Sources */,
 				DC2C7A3F1892A0770085043D /* main.m in Sources */,

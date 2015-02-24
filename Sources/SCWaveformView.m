@@ -7,6 +7,7 @@
 //
 
 #import "SCWaveformView.h"
+#import "SCWaveformCache.h"
 
 #define absX(x) (x < 0 ? 0 - x : x)
 #define minMaxX(x, mn, mx) (x <= mn ? mn : (x >= mx ? mx : x))
@@ -20,6 +21,7 @@
     UIView *_cropProgressView;
     BOOL _normalColorDirty;
     BOOL _progressColorDirty;
+    SCWaveformCache *_cache;
 }
 
 @end
@@ -67,6 +69,7 @@
     
     _normalColorDirty = NO;
     _progressColorDirty = NO;
+    _cache = [SCWaveformCache new];
 }
 
 void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight, double sample, float x) {
@@ -82,136 +85,42 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 }
 
-+ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
-    if (asset == nil) {
-        return;
-    }
++ (BOOL)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
+    SCWaveformCache *cache = [SCWaveformCache new];
+    cache.asset = asset;
     
+    return [SCWaveformView renderWaveformInContext:context cache:cache color:color size:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
+}
+
++ (BOOL)renderWaveformInContext:(CGContextRef)context cache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
     CGFloat pixelRatio = [UIScreen mainScreen].scale;
-    size.width *= pixelRatio;
-    size.height *= pixelRatio;
     
-    CGFloat widthInPixels = size.width;
-    CGFloat heightInPixels = size.height;
+    float halfGraphHeight = (size.height / 2 * pixelRatio);
     
     NSError *error = nil;
-    AVAssetReader *reader = [[AVAssetReader alloc] initWithAsset:asset error:&error];
-    reader.timeRange = timeRange;
-    
-    NSArray *audioTrackArray = [asset tracksWithMediaType:AVMediaTypeAudio];
-    
-    if (audioTrackArray.count == 0) {
-        return;
-    }
-    
-    AVAssetTrack *songTrack = [audioTrackArray objectAtIndex:0];
-    
-    NSDictionary *outputSettingsDict = [[NSDictionary alloc] initWithObjectsAndKeys:
-                                        [NSNumber numberWithInt:kAudioFormatLinearPCM], AVFormatIDKey,
-                                        [NSNumber numberWithInt:16], AVLinearPCMBitDepthKey,
-                                        [NSNumber numberWithBool:NO], AVLinearPCMIsBigEndianKey,
-                                        [NSNumber numberWithBool:NO], AVLinearPCMIsFloatKey,
-                                        [NSNumber numberWithBool:NO], AVLinearPCMIsNonInterleaved,
-                                        nil];
-    AVAssetReaderTrackOutput *output = [[AVAssetReaderTrackOutput alloc] initWithTrack:songTrack outputSettings:outputSettingsDict];
-    [reader addOutput:output];
-    
-    UInt32 channelCount;
-    NSArray *formatDesc = songTrack.formatDescriptions;
-    UInt32 sampleRate = 0;
-    for (unsigned int i = 0; i < [formatDesc count]; ++i) {
-        CMAudioFormatDescriptionRef item = (__bridge CMAudioFormatDescriptionRef)[formatDesc objectAtIndex:i];
-        const AudioStreamBasicDescription* fmtDesc = CMAudioFormatDescriptionGetStreamBasicDescription(item);
-        
-        if (fmtDesc == nil) {
-            return;
-        }
-        
-        channelCount = fmtDesc->mChannelsPerFrame;
-        sampleRate = (UInt32)fmtDesc->mSampleRate;
-    }
     
     CGContextSetAllowsAntialiasing(context, antialiasingEnabled);
     CGContextSetLineWidth(context, 1.0);
     CGContextSetStrokeColorWithColor(context, color.CGColor);
     CGContextSetFillColorWithColor(context, color.CGColor);
     
-    UInt32 bytesPerInputSample = 2 * channelCount;
-    UInt64 totalSamples = 0;
-    CMTime duration;
-    
-    if (CMTIME_IS_POSITIVE_INFINITY(timeRange.duration)) {
-        duration = asset.duration;
-    } else {
-        duration = timeRange.duration;
-    }
-    
-    duration = CMTimeConvertScale(duration, sampleRate, kCMTimeRoundingMethod_Default);
-    totalSamples = duration.value;
-    
-    NSUInteger samplesPerPixel = totalSamples / widthInPixels;
-    samplesPerPixel = samplesPerPixel < 1 ? 1 : samplesPerPixel;
-    [reader startReading];
-    
-    float halfGraphHeight = (heightInPixels / 2);
-    double bigSample = 0;
-    NSUInteger bigSampleCount = 0;
-    NSMutableData * data = [NSMutableData dataWithLength:32768];
-    
-    CGFloat currentX = 0;
-    while (reader.status == AVAssetReaderStatusReading) {
-        CMSampleBufferRef sampleBufferRef = [output copyNextSampleBuffer];
-        
-        if (sampleBufferRef) {
-            CMBlockBufferRef blockBufferRef = CMSampleBufferGetDataBuffer(sampleBufferRef);
-            size_t bufferLength = CMBlockBufferGetDataLength(blockBufferRef);
-            
-            if (data.length < bufferLength) {
-                [data setLength:bufferLength];
-            }
-            
-            CMBlockBufferCopyDataBytes(blockBufferRef, 0, bufferLength, data.mutableBytes);
-            
-            SInt16 *samples = (SInt16 *)data.mutableBytes;
-            int sampleCount = (int)(bufferLength / bytesPerInputSample);
-            for (int i = 0; i < sampleCount; i++) {
-                Float32 sample = (Float32) *samples++;
-                sample = decibel(sample);
-                sample = minMaxX(sample, noiseFloor, 0);
-                
-                for (int j = 1; j < channelCount; j++)
-                    samples++;
-                
-                bigSample += sample;
-                bigSampleCount++;
-                
-                if (bigSampleCount == samplesPerPixel) {
-                    double averageSample = bigSample / (double)bigSampleCount;
-                    
-                    SCRenderPixelWaveformInContext(context, halfGraphHeight, averageSample, currentX);
-                    
-                    currentX ++;
-                    bigSample = 0;
-                    bigSampleCount  = 0;
-                }
-            }
-            CMSampleBufferInvalidate(sampleBufferRef);
-            CFRelease(sampleBufferRef);
-        }
-    }
-    
-    // Rendering the last pixel
-    bigSample = bigSampleCount > 0 ? bigSample / (double)bigSampleCount : noiseFloor;
-    if (currentX < size.width) {
-        SCRenderPixelWaveformInContext(context, halfGraphHeight, bigSample, currentX);
-    }
+    return [cache readTimeRange:timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, double sample) {
+        SCRenderPixelWaveformInContext(context, halfGraphHeight, sample, x);
+    }];
 }
 
-+ (UIImage*)generateWaveformImage:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
++ (UIImage *)generateWaveformImageWithAsset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
+    SCWaveformCache *cache = [SCWaveformCache new];
+    cache.asset = asset;
+    
+    return [SCWaveformView generateWaveformImageWithCache:cache color:color size:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
+}
+
++ (UIImage *)generateWaveformImageWithCache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
     CGFloat ratio = [UIScreen mainScreen].scale;
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width * ratio, size.height * ratio), NO, 1);
     
-    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() asset:asset withColor:color andSize:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
+    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() cache:cache color:color size:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
     
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -242,7 +151,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGRect rect = self.bounds;
     
     if (self.generatedNormalImage == nil && self.asset) {
-        self.generatedNormalImage = [SCWaveformView generateWaveformImage:self.asset withColor:self.normalColor andSize:CGSizeMake(rect.size.width, rect.size.height) antialiasingEnabled:self.antialiasingEnabled timeRange:self.timeRange];
+        self.generatedNormalImage = [SCWaveformView generateWaveformImageWithCache:_cache color:self.normalColor size:CGSizeMake(rect.size.width, rect.size.height) antialiasingEnabled:self.antialiasingEnabled timeRange:self.timeRange];
         _normalColorDirty = NO;
     }
     
@@ -271,8 +180,8 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     
     CGFloat progress = 0;
     
-    if (CMTIME_IS_VALID(_progressTime) && CMTIME_IS_VALID(_asset.duration)) {
-        progress = CMTimeGetSeconds(CMTimeSubtract(_progressTime, _timeRange.start)) / CMTimeGetSeconds(_asset.duration);
+    if (CMTIME_IS_VALID(_progressTime) && CMTIME_IS_VALID(self.asset.duration)) {
+        progress = CMTimeGetSeconds(CMTimeSubtract(_progressTime, _timeRange.start)) / CMTimeGetSeconds(self.asset.duration);
     }
     
     if (progress < 0) {
@@ -317,11 +226,16 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     [self setNeedsDisplay];
 }
 
+- (AVAsset *)asset {
+    return _cache.asset;
+}
+
 - (void)setAsset:(AVAsset *)asset
 {
     [self willChangeValueForKey:@"asset"];
     
-    _asset = asset;
+    _cache.asset = asset;
+    
     self.generatedProgressImage = nil;
     self.generatedNormalImage = nil;
     [self setNeedsDisplay];
