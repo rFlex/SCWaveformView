@@ -8,10 +8,12 @@
 
 #import <UIKit/UIKit.h>
 #import "SCWaveformView.h"
+#import "SCScrollableWaveformView.h"
 
 @interface SCViewController : UIViewController
 
-@property (weak, nonatomic) IBOutlet SCWaveformView *waveformView;
+@property (weak, nonatomic) IBOutlet SCScrollableWaveformView *scrollableWaveformView;
+
 - (IBAction)changeColorsTapped:(id)sender;
 - (IBAction)sliderProgressChanged:(id)sender;
 

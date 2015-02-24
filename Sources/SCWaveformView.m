@@ -36,8 +36,7 @@
     return self;
 }
 
-- (instancetype)initWithCoder:(NSCoder *)aDecoder
-{
+- (instancetype)initWithCoder:(NSCoder *)aDecoder {
     self = [super initWithCoder:aDecoder];
     
     if (self) {
@@ -47,8 +46,7 @@
     return self;
 }
 
-- (void)commonInit
-{
+- (void)commonInit {
     _normalImageView = [[UIImageView alloc] init];
     _progressImageView = [[UIImageView alloc] init];
     _cropNormalView = [[UIView alloc] init];
@@ -65,13 +63,13 @@
     
     self.normalColor = [UIColor blueColor];
     self.progressColor = [UIColor redColor];
+    _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
     
     _normalColorDirty = NO;
     _progressColorDirty = NO;
 }
 
-void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight, double sample, float x)
-{
+void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight, double sample, float x) {
     float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
     
     if (pixelHeight < 0) {
@@ -84,8 +82,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 }
 
-+ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled
-{
++ (void)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
     if (asset == nil) {
         return;
     }
@@ -99,6 +96,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     
     NSError *error = nil;
     AVAssetReader *reader = [[AVAssetReader alloc] initWithAsset:asset error:&error];
+    reader.timeRange = timeRange;
     
     NSArray *audioTrackArray = [asset tracksWithMediaType:AVMediaTypeAudio];
     
@@ -120,6 +118,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     
     UInt32 channelCount;
     NSArray *formatDesc = songTrack.formatDescriptions;
+    UInt32 sampleRate = 0;
     for (unsigned int i = 0; i < [formatDesc count]; ++i) {
         CMAudioFormatDescriptionRef item = (__bridge CMAudioFormatDescriptionRef)[formatDesc objectAtIndex:i];
         const AudioStreamBasicDescription* fmtDesc = CMAudioFormatDescriptionGetStreamBasicDescription(item);
@@ -129,6 +128,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
         }
         
         channelCount = fmtDesc->mChannelsPerFrame;
+        sampleRate = (UInt32)fmtDesc->mSampleRate;
     }
     
     CGContextSetAllowsAntialiasing(context, antialiasingEnabled);
@@ -137,8 +137,19 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGContextSetFillColorWithColor(context, color.CGColor);
     
     UInt32 bytesPerInputSample = 2 * channelCount;
-    unsigned long int totalSamples = (unsigned long int)asset.duration.value;
-    NSUInteger samplesPerPixel = totalSamples / (widthInPixels);
+    UInt64 totalSamples = 0;
+    CMTime duration;
+    
+    if (CMTIME_IS_POSITIVE_INFINITY(timeRange.duration)) {
+        duration = asset.duration;
+    } else {
+        duration = timeRange.duration;
+    }
+    
+    duration = CMTimeConvertScale(duration, sampleRate, kCMTimeRoundingMethod_Default);
+    totalSamples = duration.value;
+    
+    NSUInteger samplesPerPixel = totalSamples / widthInPixels;
     samplesPerPixel = samplesPerPixel < 1 ? 1 : samplesPerPixel;
     [reader startReading];
     
@@ -189,21 +200,18 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
         }
     }
     
-    // Rendering the last pixels
+    // Rendering the last pixel
     bigSample = bigSampleCount > 0 ? bigSample / (double)bigSampleCount : noiseFloor;
-    while (currentX < size.width) {
+    if (currentX < size.width) {
         SCRenderPixelWaveformInContext(context, halfGraphHeight, bigSample, currentX);
-        currentX++;
     }
-
 }
 
-+ (UIImage*)generateWaveformImage:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled
-{
++ (UIImage*)generateWaveformImage:(AVAsset *)asset withColor:(UIColor *)color andSize:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
     CGFloat ratio = [UIScreen mainScreen].scale;
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width * ratio, size.height * ratio), NO, 1);
     
-    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() asset:asset withColor:color andSize:size antialiasingEnabled:antialiasingEnabled];
+    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() asset:asset withColor:color andSize:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
     
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -212,8 +220,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     return image;
 }
 
-+ (UIImage*)recolorizeImage:(UIImage*)image withColor:(UIColor*)color
-{
++ (UIImage*)recolorizeImage:(UIImage*)image withColor:(UIColor*)color {
     CGRect imageRect = CGRectMake(0, 0, image.size.width, image.size.height);
     UIGraphicsBeginImageContextWithOptions(image.size, NO, image.scale);
     
@@ -231,12 +238,11 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     return newImage;
 }
 
-- (void)generateWaveforms
-{
+- (void)generateWaveforms {
     CGRect rect = self.bounds;
     
     if (self.generatedNormalImage == nil && self.asset) {
-        self.generatedNormalImage = [SCWaveformView generateWaveformImage:self.asset withColor:self.normalColor andSize:CGSizeMake(rect.size.width, rect.size.height) antialiasingEnabled:self.antialiasingEnabled];
+        self.generatedNormalImage = [SCWaveformView generateWaveformImage:self.asset withColor:self.normalColor andSize:CGSizeMake(rect.size.width, rect.size.height) antialiasingEnabled:self.antialiasingEnabled timeRange:self.timeRange];
         _normalColorDirty = NO;
     }
     
@@ -254,17 +260,28 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
  
 }
 
-- (void)drawRect:(CGRect)rect
-{
+- (void)drawRect:(CGRect)rect {
     [self generateWaveforms];
     
     [super drawRect:rect];
 }
 
-- (void)applyProgressToSubviews
-{
+- (void)applyProgressToSubviews {
     CGRect bs = self.bounds;
-    CGFloat progressWidth = bs.size.width * _progress;
+    
+    CGFloat progress = 0;
+    
+    if (CMTIME_IS_VALID(_progressTime) && CMTIME_IS_VALID(_asset.duration)) {
+        progress = CMTimeGetSeconds(CMTimeSubtract(_progressTime, _timeRange.start)) / CMTimeGetSeconds(_asset.duration);
+    }
+    
+    if (progress < 0) {
+        progress = 0;
+    } else if (progress > 1) {
+        progress = 1;
+    }
+    
+    CGFloat progressWidth = bs.size.width * progress;
     _cropProgressView.frame = CGRectMake(0, 0, progressWidth, bs.size.height);
     _cropNormalView.frame = CGRectMake(progressWidth, 0, bs.size.width - progressWidth, bs.size.height);
     _normalImageView.frame = CGRectMake(-progressWidth, 0, bs.size.width, bs.size.height);
@@ -302,46 +319,55 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 - (void)setAsset:(AVAsset *)asset
 {
+    [self willChangeValueForKey:@"asset"];
+    
     _asset = asset;
     self.generatedProgressImage = nil;
     self.generatedNormalImage = nil;
     [self setNeedsDisplay];
+    
+    [self didChangeValueForKey:@"asset"];
 }
 
-- (void)setProgress:(CGFloat)progress
-{
-    _progress = progress;
+- (void)setProgressTime:(CMTime)progressTime {
+    _progressTime = progressTime;
     [self applyProgressToSubviews];
 }
 
-- (UIImage*)generatedNormalImage
-{
+- (UIImage*)generatedNormalImage {
     return _normalImageView.image;
 }
 
-- (void)setGeneratedNormalImage:(UIImage *)generatedNormalImage
-{
+- (void)setGeneratedNormalImage:(UIImage *)generatedNormalImage {
     _normalImageView.image = generatedNormalImage;
 }
 
-- (UIImage*)generatedProgressImage
-{
+- (UIImage*)generatedProgressImage {
     return _progressImageView.image;
 }
 
-- (void)setGeneratedProgressImage:(UIImage *)generatedProgressImage
-{
+- (void)setGeneratedProgressImage:(UIImage *)generatedProgressImage {
     _progressImageView.image = generatedProgressImage;
 }
 
-- (void)setAntialiasingEnabled:(BOOL)antialiasingEnabled
-{
+- (void)setAntialiasingEnabled:(BOOL)antialiasingEnabled {
     if (_antialiasingEnabled != antialiasingEnabled) {
         _antialiasingEnabled = antialiasingEnabled;
         self.generatedProgressImage = nil;
         self.generatedNormalImage = nil;
         [self setNeedsDisplay];        
     }
+}
+
+- (void)setTimeRange:(CMTimeRange)timeRange {
+    [self willChangeValueForKey:@"timeRange"];
+    
+    _timeRange = timeRange;
+    self.generatedProgressImage = nil;
+    self.generatedNormalImage = nil;
+    [self setNeedsDisplay];
+    
+    [self didChangeValueForKey:@"timeRange"];
 }
 
 @end

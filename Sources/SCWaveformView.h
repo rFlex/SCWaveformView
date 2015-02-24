@@ -11,14 +11,16 @@
 
 @interface SCWaveformView : UIView
 
-@property (strong, readwrite, nonatomic) AVAsset *asset;
-@property (strong, readwrite, nonatomic) UIColor *normalColor;
-@property (strong, readwrite, nonatomic) UIColor *progressColor;
-@property (assign, readwrite, nonatomic) CGFloat progress;
-@property (assign, readwrite, nonatomic) BOOL antialiasingEnabled;
+@property (strong, nonatomic) AVAsset *asset;
+@property (strong, nonatomic) UIColor *normalColor;
+@property (strong, nonatomic) UIColor *progressColor;
+@property (assign, nonatomic) CMTime progressTime;
+@property (assign, nonatomic) BOOL antialiasingEnabled;
 
-@property (readwrite, nonatomic) UIImage *generatedNormalImage;
-@property (readwrite, nonatomic) UIImage *generatedProgressImage;
+@property (strong, nonatomic) UIImage *generatedNormalImage;
+@property (strong, nonatomic) UIImage *generatedProgressImage;
+
+@property (assign, nonatomic) CMTimeRange timeRange;
 
 // Ask the waveformview to generate the waveform right now
 // instead of doing it in the next draw operation
