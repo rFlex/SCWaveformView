@@ -82,7 +82,6 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGContextMoveToPoint(context, x, halfGraphHeight - pixelHeight);
     CGContextAddLineToPoint(context, x, halfGraphHeight + pixelHeight);
     CGContextStrokePath(context);
-
 }
 
 + (BOOL)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
@@ -94,6 +93,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 + (BOOL)renderWaveformInContext:(CGContextRef)context cache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
     CGFloat pixelRatio = [UIScreen mainScreen].scale;
+    pixelRatio = 1;
     
     float halfGraphHeight = (size.height / 2 * pixelRatio);
     
@@ -105,7 +105,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGContextSetFillColorWithColor(context, color.CGColor);
     
     return [cache readTimeRange:timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, float sample) {
-        SCRenderPixelWaveformInContext(context, halfGraphHeight, sample, x);
+        SCRenderPixelWaveformInContext(context, halfGraphHeight / pixelRatio, sample, x);
     }];
 }
 
@@ -117,8 +117,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 }
 
 + (UIImage *)generateWaveformImageWithCache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
-    CGFloat ratio = [UIScreen mainScreen].scale;
-    UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width * ratio, size.height * ratio), NO, 1);
+    UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width, size.height), NO, 1);
     
     [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() cache:cache color:color size:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
     
@@ -151,7 +150,9 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGRect rect = self.bounds;
     
     if (self.generatedNormalImage == nil && self.asset) {
-        self.generatedNormalImage = [SCWaveformView generateWaveformImageWithCache:_cache color:self.normalColor size:CGSizeMake(rect.size.width, rect.size.height) antialiasingEnabled:self.antialiasingEnabled timeRange:self.timeRange];
+        self.generatedNormalImage = [SCWaveformView generateWaveformImageWithCache:_cache color:self.normalColor size:
+                                     CGSizeMake(rect.size.width * [UIScreen mainScreen].scale , rect.size.height * [UIScreen mainScreen].scale)
+                                                               antialiasingEnabled:self.antialiasingEnabled timeRange:self.timeRange];
         _normalColorDirty = NO;
     }
     
@@ -171,6 +172,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 - (void)drawRect:(CGRect)rect {
     [self generateWaveforms];
+//    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() cache:_cache color:self.normalColor size:rect.size antialiasingEnabled:self.antialiasingEnabled timeRange:self.timeRange];
     
     [super drawRect:rect];
 }
@@ -212,15 +214,13 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     [self applyProgressToSubviews];
 }
 
-- (void)setNormalColor:(UIColor *)normalColor
-{
+- (void)setNormalColor:(UIColor *)normalColor {
     _normalColor = normalColor;
     _normalColorDirty = YES;
     [self setNeedsDisplay];
 }
 
-- (void)setProgressColor:(UIColor *)progressColor
-{
+- (void)setProgressColor:(UIColor *)progressColor {
     _progressColor = progressColor;
     _progressColorDirty = YES;
     [self setNeedsDisplay];
@@ -230,8 +230,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     return _cache.asset;
 }
 
-- (void)setAsset:(AVAsset *)asset
-{
+- (void)setAsset:(AVAsset *)asset {
     [self willChangeValueForKey:@"asset"];
     
     _cache.asset = asset;

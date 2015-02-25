@@ -26,7 +26,9 @@
     self.scrollableWaveformView.alpha = 0.8;
     
     self.scrollableWaveformView.waveformView.asset = asset;
-    self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(kCMTimeZero, CMTimeMakeWithSeconds(5, 10000));
+    self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
+    
+    [self sliderProgressChanged:self.slider];
 }
 
 - (void)didReceiveMemoryWarning
@@ -43,8 +45,8 @@
 - (IBAction)sliderProgressChanged:(UISlider*)sender
 {
     CMTime progressTime = CMTimeMakeWithSeconds(
-                                                 sender.value * CMTimeGetSeconds(self.scrollableWaveformView.waveformView.asset.duration),
-                                                 100000);
+                                                sender.value * CMTimeGetSeconds(self.scrollableWaveformView.waveformView.asset.duration),
+                                                100000);
     
     self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(self.scrollableWaveformView.waveformView.timeRange.start, progressTime);
         

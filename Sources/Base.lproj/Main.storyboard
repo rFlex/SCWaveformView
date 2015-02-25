@@ -18,9 +18,9 @@
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
                             </view>
-                            <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" id="x0p-YQ-erD">
-                                <rect key="frame" x="-2" y="362" width="324" height="34"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMinX="YES" flexibleMaxX="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
+                            <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.01" maxValue="1" id="x0p-YQ-erD">
+                                <rect key="frame" x="14" y="362" width="292" height="34"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
                                 <connections>
                                     <action selector="sliderProgressChanged:" destination="vXZ-lx-hvc" eventType="valueChanged" id="hgL-Qb-FQL"/>
                                 </connections>
@@ -40,6 +40,7 @@
                     </view>
                     <connections>
                         <outlet property="scrollableWaveformView" destination="0cn-ms-yr2" id="fUg-Cj-pUv"/>
+                        <outlet property="slider" destination="x0p-YQ-erD" id="GNe-2X-Kxu"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="x5A-6p-PRh" sceneMemberID="firstResponder"/>

@@ -13,6 +13,7 @@
 @interface SCViewController : UIViewController
 
 @property (weak, nonatomic) IBOutlet SCScrollableWaveformView *scrollableWaveformView;
+@property (weak, nonatomic) IBOutlet UISlider *slider;
 
 - (IBAction)changeColorsTapped:(id)sender;
 - (IBAction)sliderProgressChanged:(id)sender;
