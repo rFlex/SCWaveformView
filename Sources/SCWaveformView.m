@@ -43,9 +43,11 @@
 }
 
 - (void)commonInit {
+    _needsDisplayOnProgressTimeChange = YES;
     self.normalColor = [UIColor blueColor];
     self.progressColor = [UIColor redColor];
     _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
+    _progressTime = kCMTimeZero;
     
     _cache = [SCWaveformCache new];
 }
@@ -151,7 +153,10 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 - (void)setProgressTime:(CMTime)progressTime {
     _progressTime = progressTime;
-    [self setNeedsDisplay];
+    
+    if (self.needsDisplayOnProgressTimeChange) {
+        [self setNeedsDisplay];
+    }
 }
 
 - (void)setAntialiasingEnabled:(BOOL)antialiasingEnabled {

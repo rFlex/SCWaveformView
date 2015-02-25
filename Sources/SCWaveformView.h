@@ -18,23 +18,8 @@
 @property (assign, nonatomic) CMTime progressTime;
 @property (assign, nonatomic) BOOL antialiasingEnabled;
 
+@property (assign, nonatomic) BOOL needsDisplayOnProgressTimeChange;
+
 @property (assign, nonatomic) CMTimeRange timeRange;
 
 @end
-
-
-//typedef enum : NSUInteger {
-//    /**
-//     The WaveformView draw manually in "drawRect:" method.
-//     This is the fastest way to render the waveform.
-//
-//     */
-//    SCWaveformViewRenderingModeDraw,
-//
-//    /**
-//     The WaveformView render the waveform in UIImage's.
-//     This is slower, however it will be.
-//
-//     */
-//    SCWaveformViewRenderingModeGenImages
-//} SCWaveformViewRenderingMode;
