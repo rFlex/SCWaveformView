@@ -13,8 +13,10 @@
 
 @property (strong, nonatomic) AVAsset *asset;
 
-typedef void (^SCAudioBufferHandler)(CGFloat x, double sample);
+typedef void (^SCAudioBufferHandler)(CGFloat x, float sample);
 
 - (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError **)error handler:(SCAudioBufferHandler)handler;
+
+- (void)invalidate;
 
 @end

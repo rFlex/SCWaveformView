@@ -72,7 +72,7 @@
     _cache = [SCWaveformCache new];
 }
 
-void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight, double sample, float x) {
+void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight, float sample, float x) {
     float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
     
     if (pixelHeight < 0) {
@@ -104,7 +104,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGContextSetStrokeColorWithColor(context, color.CGColor);
     CGContextSetFillColorWithColor(context, color.CGColor);
     
-    return [cache readTimeRange:timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, double sample) {
+    return [cache readTimeRange:timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, float sample) {
         SCRenderPixelWaveformInContext(context, halfGraphHeight, sample, x);
     }];
 }

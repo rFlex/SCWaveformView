@@ -40,9 +40,7 @@ static char *ScrollableWaveformContentOffsetContext = "ScrollableWaveformContent
     return self;
 }
 
-- (void)_commonInit {
-    NSLog(@"CALLING COMMON INIT");
-    
+- (void)_commonInit {    
     _waveformView = [SCWaveformView new];
     [_waveformView addObserver:self forKeyPath:@"asset" options:NSKeyValueObservingOptionNew context:WaveformAssetContext];
     [_waveformView addObserver:self forKeyPath:@"timeRange" options:NSKeyValueObservingOptionNew context:WaveformTimeRangeContext];
