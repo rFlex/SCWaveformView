@@ -9,7 +9,10 @@
 #import "SCViewController.h"
 #import "SCWaveformView.h"
 
-@interface SCViewController ()
+@interface SCViewController () {
+    AVPlayer *_player;
+    id _observer;
+}
 
 @end
 
@@ -32,12 +35,41 @@
     
     self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(CMTimeMakeWithSeconds(15, 10000), progressTime);
     
-//    [self sliderProgressChanged:self.slider];
+    _player = [AVPlayer playerWithPlayerItem:[AVPlayerItem playerItemWithAsset:asset]];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_playReachedEnd:) name:AVPlayerItemDidPlayToEndTimeNotification object:_player.currentItem];
+    
+    __unsafe_unretained SCViewController *mySelf = self;
+    _observer = [_player addPeriodicTimeObserverForInterval:CMTimeMake(1, 60) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+        mySelf.scrollableWaveformView.waveformView.progressTime = time;
+    }];
+}
+
+- (void)_playReachedEnd:(NSNotification *)notification {
+    if (notification.object == _player.currentItem) {
+        [_player seekToTime:kCMTimeZero];
+        [_player play];
+    }
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [_player removeTimeObserver:_observer];
 }
 
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];
+}
+
+- (IBAction)playButtonTapped:(UIButton *)sender {
+    sender.selected = !sender.selected;
+    
+    if (sender.selected) {
+        [_player play];
+    } else {
+        [_player pause];
+    }
 }
 
 - (IBAction)changeColorsTapped:(id)sender {

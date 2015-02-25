@@ -92,8 +92,8 @@
     
     NSUInteger samplesPerPixel = totalSamples / width;
     samplesPerPixel = samplesPerPixel < 1 ? 1 : samplesPerPixel;
-    CMTime timePerPixel = CMTimeMultiplyByRatio(timeRangeToRead.duration, 1, samplesPerPixel);
-//    CMTime timePerPixel = CMTimeMake(timeRangeToRead.duration.value, timeRangeToRead.duration.timescale / samplesPerPixel);
+
+    CMTime timePerPixel = CMTimeMultiplyByRatio(timeRangeToRead.duration, 1, width);
     
     if (samplesPerPixel != _samplesPerPixel ||
         CMTIME_COMPARE_INLINE(CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration), <, _cachedStartTime) ||
@@ -240,7 +240,6 @@
 //    NSLog(@"At %fs (%fs from %fs) -> %f", CMTimeGetSeconds(timeRange.start), CMTimeGetSeconds(_cachedStartTime), CMTimeGetSeconds(_cachedEndTime), indexRatio);
 
     float *samples = _cachedData.mutableBytes;
-    CMTime currentTime = timeRange.start;
     
     for (int x = 0; x < width; x++) {
         int idx = indexAtStart + x;
@@ -249,9 +248,8 @@
             if (idx * sizeof(float) >= _cachedData.length) {
                 break;
             }
-            handler(x, samples[idx], currentTime);
+            handler(x, samples[idx], CMTimeMultiplyByFloat64(timePerPixel, idx));
         }
-        currentTime = CMTimeAdd(currentTime, timePerPixel);
     }
     
 

@@ -14,6 +14,7 @@
 
 @property (weak, nonatomic) IBOutlet SCScrollableWaveformView *scrollableWaveformView;
 @property (weak, nonatomic) IBOutlet UISlider *slider;
+- (IBAction)playButtonTapped:(UIButton *)sender;
 
 - (IBAction)changeColorsTapped:(id)sender;
 - (IBAction)sliderProgressChanged:(id)sender;
