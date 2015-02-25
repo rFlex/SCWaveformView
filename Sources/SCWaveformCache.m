@@ -148,13 +148,13 @@
     }
     
     if (shouldReadAsset) {
-        NSDictionary *outputSettingsDict = [[NSDictionary alloc] initWithObjectsAndKeys:
-                                            [NSNumber numberWithInt:kAudioFormatLinearPCM], AVFormatIDKey,
-                                            [NSNumber numberWithInt:16], AVLinearPCMBitDepthKey,
-                                            [NSNumber numberWithBool:NO], AVLinearPCMIsBigEndianKey,
-                                            [NSNumber numberWithBool:NO], AVLinearPCMIsFloatKey,
-                                            [NSNumber numberWithBool:NO], AVLinearPCMIsNonInterleaved,
-                                            nil];
+        NSDictionary *outputSettingsDict = @{
+                                             AVFormatIDKey : [NSNumber numberWithInt:kAudioFormatLinearPCM],
+                                             AVLinearPCMBitDepthKey : @16,
+                                             AVLinearPCMIsBigEndianKey : @NO,
+                                             AVLinearPCMIsFloatKey : @NO,
+                                             AVLinearPCMIsNonInterleaved : @NO
+                                             };
         
         AVAssetReaderTrackOutput *output = [[AVAssetReaderTrackOutput alloc] initWithTrack:songTrack outputSettings:outputSettingsDict];
         output.alwaysCopiesSampleData = NO;
@@ -176,15 +176,14 @@
         NSUInteger bigSampleCount = 0;
         NSMutableData *data = [NSMutableData new];
         UInt32 bytesPerInputSample = 2 * channelCount;
-
-        CGFloat currentX = 0;
+        
         while (reader.status == AVAssetReaderStatusReading) {
             CMSampleBufferRef sampleBufferRef = [output copyNextSampleBuffer];
             
             if (sampleBufferRef) {
                 CMBlockBufferRef blockBufferRef = CMSampleBufferGetDataBuffer(sampleBufferRef);
                 size_t bufferLength = CMBlockBufferGetDataLength(blockBufferRef);
-       
+                
                 char *dataPointer;
                 CMBlockBufferGetDataPointer(blockBufferRef, 0, &bufferLength, nil, &dataPointer);
                 
@@ -207,7 +206,6 @@
                         
                         [data appendBytes:&averageSample length:(sizeof(float))];
                         
-                        currentX++;
                         bigSample = 0;
                         bigSampleCount  = 0;
                     }

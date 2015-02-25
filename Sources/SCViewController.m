@@ -66,12 +66,8 @@
     sender.selected = !sender.selected;
     
     if (sender.selected) {
-//        self.slider.value = 1;
-//        [self sliderProgressChanged:self.slider];
         [_player play];
     } else {
-//        self.slider.value = 0.5;
-//        [self sliderProgressChanged:self.slider];
         [_player pause];
     }
 }
