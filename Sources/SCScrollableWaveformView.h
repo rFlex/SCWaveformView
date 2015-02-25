@@ -9,6 +9,8 @@
 #import <UIKit/UIKit.h>
 #import "SCWaveformView.h"
 
+@class SCWaveformView;
+
 @interface SCScrollableWaveformView : UIScrollView<UIScrollViewDelegate>
 
 @property (readonly, nonatomic) SCWaveformView *waveformView;

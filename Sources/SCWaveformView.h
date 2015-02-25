@@ -9,6 +9,7 @@
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
 #import "SCWaveformCache.h"
+#import "SCScrollableWaveformView.h" // For convenience
 
 @interface SCWaveformView : UIView
 
