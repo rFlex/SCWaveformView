@@ -16,6 +16,8 @@
 
 @interface SCWaveformView() {
     SCWaveformCache *_cache;
+    CGPathRef _progressPath;
+    CGPathRef _normalPath;
 }
 
 @end
@@ -44,6 +46,7 @@
 
 - (void)commonInit {
     _needsDisplayOnProgressTimeChange = YES;
+    _precision = 1;
     self.normalColor = [UIColor blueColor];
     self.progressColor = [UIColor redColor];
     _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
@@ -52,47 +55,46 @@
     _cache = [SCWaveformCache new];
 }
 
-void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight, float sample, float x) {
+void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, float sample, float x) {
     float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
     
     if (pixelHeight < 0) {
         pixelHeight = 0;
     }
     
-    CGContextMoveToPoint(context, x, halfGraphHeight - pixelHeight);
-    CGContextAddLineToPoint(context, x, halfGraphHeight + pixelHeight);
-    CGContextStrokePath(context);
+    CGPathMoveToPoint(path, nil, x, halfGraphHeight - pixelHeight);
+    CGPathAddLineToPoint(path, nil, x, halfGraphHeight + pixelHeight);
 }
 
-- (BOOL)renderWaveformInContext:(CGContextRef)context size:(CGSize)size {
-    CGFloat pixelRatio = size.width / CGContextConvertSizeToUserSpace(context, size).width;
-    
+- (BOOL)renderWaveformWithSize:(CGSize)size pixelRatio:(CGFloat)pixelRatio {
     float halfGraphHeight = (size.height / 2 * pixelRatio);
     
     NSError *error = nil;
     
-    CGContextSetAllowsAntialiasing(context, _antialiasingEnabled);
-    CGContextSetLineWidth(context, 1.0);
-    
-    CGContextSetStrokeColorWithColor(context, _progressColor.CGColor);
-    CGContextSetFillColorWithColor(context, _progressColor.CGColor);
     __block BOOL reachedProgressPoint = NO;
+    CGMutablePathRef normalPath = CGPathCreateMutable();
+    CGMutablePathRef progressPath = CGPathCreateMutable();
+    __block CGMutablePathRef currentPath = progressPath;
     
-    return [_cache readTimeRange:_timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, float sample, CMTime time) {
+    BOOL read = [_cache readTimeRange:_timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, float sample, CMTime time) {
         if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
             reachedProgressPoint = YES;
-            CGContextSetStrokeColorWithColor(context, _normalColor.CGColor);
-            CGContextSetFillColorWithColor(context, _normalColor.CGColor);
+            currentPath = normalPath;
         }
         
-        SCRenderPixelWaveformInContext(context, halfGraphHeight / pixelRatio, sample, x / pixelRatio);
+        SCRenderPixelWaveformInPath(currentPath, halfGraphHeight / pixelRatio, sample, x / pixelRatio);
     }];
+    
+    _normalPath = normalPath;
+    _progressPath = progressPath;
+    
+    return read;
 }
 
 - (UIImage *)generateWaveformImageWithSize:(CGSize)size {
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width, size.height), NO, 1);
     
-    [self renderWaveformInContext:UIGraphicsGetCurrentContext() size:size];
+//    [self renderWaveformInContext:UIGraphicsGetCurrentContext() size:size];
     
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -123,18 +125,52 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGContextRef ctx = UIGraphicsGetCurrentContext();
     
     CGContextClearRect(ctx, rect);
-    [self renderWaveformInContext:ctx size:rect.size];
+    
+    CGFloat pixelRatio = rect.size.width / CGContextConvertSizeToUserSpace(ctx, rect.size).width * _precision;
+    
+    CGContextSetAllowsAntialiasing(ctx, _antialiasingEnabled);
+    CGContextSetLineWidth(ctx, 1.0 / pixelRatio);
+
+    CGContextSetStrokeColorWithColor(ctx, _progressColor.CGColor);
+    
+    if (_progressPath == nil) {
+
+        [self renderWaveformWithSize:rect.size pixelRatio:pixelRatio];
+    }
+    
+    CGContextAddPath(ctx, _progressPath);
+    
+    CGContextStrokePath(ctx);
+
+    CGContextSetStrokeColorWithColor(ctx, _normalColor.CGColor);
+    
+    CGContextAddPath(ctx, _normalPath);
+    
+    CGContextStrokePath(ctx);
     
     [super drawRect:rect];
 }
 
+- (void)_invalidatePaths {
+    if (_normalPath != nil) {
+        CGPathRelease(_normalPath);
+        _normalPath = nil;
+    }
+    if (_progressPath != nil) {
+        CGPathRelease(_progressPath);
+        _progressPath = nil;
+    }
+}
+
 - (void)setNormalColor:(UIColor *)normalColor {
     _normalColor = normalColor;
+    
     [self setNeedsDisplay];
 }
 
 - (void)setProgressColor:(UIColor *)progressColor {
     _progressColor = progressColor;
+    
     [self setNeedsDisplay];
 }
 
@@ -146,6 +182,8 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     [self willChangeValueForKey:@"asset"];
     
     _cache.asset = asset;
+    
+    [self _invalidatePaths];
     [self setNeedsDisplay];
     
     [self didChangeValueForKey:@"asset"];
@@ -153,6 +191,8 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 
 - (void)setProgressTime:(CMTime)progressTime {
     _progressTime = progressTime;
+    
+    [self _invalidatePaths];
     
     if (self.needsDisplayOnProgressTimeChange) {
         [self setNeedsDisplay];
@@ -162,6 +202,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
 - (void)setAntialiasingEnabled:(BOOL)antialiasingEnabled {
     if (_antialiasingEnabled != antialiasingEnabled) {
         _antialiasingEnabled = antialiasingEnabled;
+        
         [self setNeedsDisplay];        
     }
 }
@@ -170,9 +211,18 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     [self willChangeValueForKey:@"timeRange"];
     
     _timeRange = timeRange;
+    
+    [self _invalidatePaths];
     [self setNeedsDisplay];
     
     [self didChangeValueForKey:@"timeRange"];
+}
+
+- (void)setPrecision:(CGFloat)precision {
+    _precision = precision;
+    
+    [self _invalidatePaths];
+    [self setNeedsDisplay];
 }
 
 @end

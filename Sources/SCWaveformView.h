@@ -19,6 +19,8 @@
 @property (assign, nonatomic) CMTime progressTime;
 @property (assign, nonatomic) BOOL antialiasingEnabled;
 
+@property (assign, nonatomic) CGFloat precision;
+
 @property (assign, nonatomic) BOOL needsDisplayOnProgressTimeChange;
 
 @property (assign, nonatomic) CMTimeRange timeRange;
