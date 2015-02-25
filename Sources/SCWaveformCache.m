@@ -250,7 +250,7 @@
             if (idx * sizeof(float) >= _cachedData.length) {
                 break;
             }
-            handler(x, samples[idx], CMTimeMultiplyByFloat64(timePerPixel, idx));
+            handler(x, samples[idx], CMTimeAdd(_cachedStartTime, CMTimeMultiplyByFloat64(timePerPixel, idx)));
         }
     }
     
