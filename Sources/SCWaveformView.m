@@ -84,42 +84,35 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGContextStrokePath(context);
 }
 
-+ (BOOL)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
-    SCWaveformCache *cache = [SCWaveformCache new];
-    cache.asset = asset;
-    
-    return [SCWaveformView renderWaveformInContext:context cache:cache color:color size:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
-}
-
-+ (BOOL)renderWaveformInContext:(CGContextRef)context cache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
-    CGFloat pixelRatio = [UIScreen mainScreen].scale;
-    pixelRatio = 1;
+- (BOOL)renderWaveformInContext:(CGContextRef)context size:(CGSize)size {
+    CGFloat pixelRatio = size.width / CGContextConvertSizeToUserSpace(context, size).width;
     
     float halfGraphHeight = (size.height / 2 * pixelRatio);
     
     NSError *error = nil;
     
-    CGContextSetAllowsAntialiasing(context, antialiasingEnabled);
+    CGContextSetAllowsAntialiasing(context, _antialiasingEnabled);
     CGContextSetLineWidth(context, 1.0);
-    CGContextSetStrokeColorWithColor(context, color.CGColor);
-    CGContextSetFillColorWithColor(context, color.CGColor);
     
-    return [cache readTimeRange:timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, float sample) {
-        SCRenderPixelWaveformInContext(context, halfGraphHeight / pixelRatio, sample, x);
+    CGContextSetStrokeColorWithColor(context, _normalColor.CGColor);
+    CGContextSetFillColorWithColor(context, _normalColor.CGColor);
+    __block BOOL reachedProgressPoint = NO;
+    
+    return [_cache readTimeRange:_timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, float sample, CMTime time) {
+        if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
+            reachedProgressPoint = YES;
+            CGContextSetStrokeColorWithColor(context, _progressColor.CGColor);
+            CGContextSetFillColorWithColor(context, _progressColor.CGColor);
+        }
+        
+        SCRenderPixelWaveformInContext(context, halfGraphHeight / pixelRatio, sample, x / pixelRatio);
     }];
 }
 
-+ (UIImage *)generateWaveformImageWithAsset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
-    SCWaveformCache *cache = [SCWaveformCache new];
-    cache.asset = asset;
-    
-    return [SCWaveformView generateWaveformImageWithCache:cache color:color size:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
-}
-
-+ (UIImage *)generateWaveformImageWithCache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange {
+- (UIImage *)generateWaveformImageWithSize:(CGSize)size {
     UIGraphicsBeginImageContextWithOptions(CGSizeMake(size.width, size.height), NO, 1);
     
-    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() cache:cache color:color size:size antialiasingEnabled:antialiasingEnabled timeRange:timeRange];
+    [self renderWaveformInContext:UIGraphicsGetCurrentContext() size:size];
     
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
     
@@ -150,9 +143,7 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     CGRect rect = self.bounds;
     
     if (self.generatedNormalImage == nil && self.asset) {
-        self.generatedNormalImage = [SCWaveformView generateWaveformImageWithCache:_cache color:self.normalColor size:
-                                     CGSizeMake(rect.size.width * [UIScreen mainScreen].scale , rect.size.height * [UIScreen mainScreen].scale)
-                                                               antialiasingEnabled:self.antialiasingEnabled timeRange:self.timeRange];
+        self.generatedNormalImage = [self generateWaveformImageWithSize:CGSizeMake(rect.size.width * [UIScreen mainScreen].scale , rect.size.height * [UIScreen mainScreen].scale)];
         _normalColorDirty = NO;
     }
     
@@ -167,12 +158,15 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
             _progressColorDirty = NO;
         }
     }
- 
 }
 
 - (void)drawRect:(CGRect)rect {
-    [self generateWaveforms];
-//    [SCWaveformView renderWaveformInContext:UIGraphicsGetCurrentContext() cache:_cache color:self.normalColor size:rect.size antialiasingEnabled:self.antialiasingEnabled timeRange:self.timeRange];
+//    [self generateWaveforms];
+    
+    CGContextRef ctx = UIGraphicsGetCurrentContext();
+    
+    CGContextClearRect(ctx, rect);
+    [self renderWaveformInContext:ctx size:rect.size];
     
     [super drawRect:rect];
 }
@@ -234,7 +228,6 @@ void SCRenderPixelWaveformInContext(CGContextRef context, float halfGraphHeight,
     [self willChangeValueForKey:@"asset"];
     
     _cache.asset = asset;
-    
     self.generatedProgressImage = nil;
     self.generatedNormalImage = nil;
     [self setNeedsDisplay];

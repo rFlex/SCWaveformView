@@ -18,33 +18,23 @@
 @property (assign, nonatomic) CMTime progressTime;
 @property (assign, nonatomic) BOOL antialiasingEnabled;
 
-@property (strong, nonatomic) UIImage *generatedNormalImage;
-@property (strong, nonatomic) UIImage *generatedProgressImage;
-
 @property (assign, nonatomic) CMTimeRange timeRange;
 
-// Ask the waveformview to generate the waveform right now
-// instead of doing it in the next draw operation
-- (void)generateWaveforms;
-
-/**
- Render the waveform in the given context
- */
-+ (BOOL)renderWaveformInContext:(CGContextRef)context asset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange;
-
-/**
- Returns the waveform as UIImage
- */
-+ (UIImage *)generateWaveformImageWithAsset:(AVAsset *)asset color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange;
-
-/**
- Render the waveform in the given context using a cache that can be used later to make the rendering faster
- */
-+ (BOOL)renderWaveformInContext:(CGContextRef)context cache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange;
-
-/**
- Returns the waveform as UIImage using a cache that can be used later to make the rendering faster
- */
-+ (UIImage *)generateWaveformImageWithCache:(SCWaveformCache *)cache color:(UIColor *)color size:(CGSize)size antialiasingEnabled:(BOOL)antialiasingEnabled timeRange:(CMTimeRange)timeRange;
-
 @end
+
+
+//typedef enum : NSUInteger {
+//    /**
+//     The WaveformView draw manually in "drawRect:" method.
+//     This is the fastest way to render the waveform.
+//
+//     */
+//    SCWaveformViewRenderingModeDraw,
+//
+//    /**
+//     The WaveformView render the waveform in UIImage's.
+//     This is slower, however it will be.
+//
+//     */
+//    SCWaveformViewRenderingModeGenImages
+//} SCWaveformViewRenderingMode;
