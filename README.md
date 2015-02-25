@@ -10,6 +10,8 @@ Main features:
   * Colors are changeable at runtime without reprocessing the asset.
   * Doesn't have to read the whole file if you display only a portion of your audio on screen.
   * Features a scrollable waveform view..
+  * Can set a precision to make the drawing faster on some devices
+  * LineWidth is changeable so you can have a unique waveform design
   * Set the asset, then you are good to go.
   * ARC.
 
@@ -48,4 +50,10 @@ Example
      // Use it inside a scrollView
      SCScrollableWaveformView *scrollableWaveformView = [SCScrollableWaveformView new];
      scrollableWaveformView.waveformView; // Access the waveformView from there
+     
+     // Set the precision, 1 being the maximum
+     waveformView.precision = 0.25; // We are going to render one line per four pixels
+     
+     // Set the lineWidth so we have some space between the lines
+     waveformView.lineWidthRatio = 0.5;
      
