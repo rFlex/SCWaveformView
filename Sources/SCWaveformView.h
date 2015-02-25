@@ -20,6 +20,7 @@
 @property (assign, nonatomic) BOOL antialiasingEnabled;
 
 @property (assign, nonatomic) CGFloat precision;
+@property (assign, nonatomic) CGFloat lineWidthRatio;
 
 @property (assign, nonatomic) BOOL needsDisplayOnProgressTimeChange;
 

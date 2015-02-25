@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
   s.name         = "SCWaveformView"
-  s.version      = "2.0.2"
+  s.version      = "2.0.3"
   s.summary      = "A blazing fast customizable waveform view."
 
   s.description  = <<-DESC
@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   s.license      = 'Apache License, Version 2.0'
   s.author       = { "Simon CORSIN" => "simon@corsin.me" }
   s.platform     = :ios, '7.0'
-  s.source       = { :git => "https://github.com/rFlex/SCWaveformView.git", :tag => "v2.0.2" }
+  s.source       = { :git => "https://github.com/rFlex/SCWaveformView.git", :tag => "v2.0.3" }
   s.source_files  = [
   		  "Sources/SCWaveformView.h",
 		  "Sources/SCWaveformView.m",

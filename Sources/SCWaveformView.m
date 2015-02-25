@@ -47,12 +47,17 @@
 - (void)commonInit {
     _needsDisplayOnProgressTimeChange = YES;
     _precision = 1;
-    self.normalColor = [UIColor blueColor];
-    self.progressColor = [UIColor redColor];
+    _lineWidthRatio = 1;
+
     _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
     _progressTime = kCMTimeZero;
     
     _cache = [SCWaveformCache new];
+    
+    self.normalColor = [UIColor blueColor];
+    self.progressColor = [UIColor redColor];
+    
+    self.layer.shouldRasterize = NO;
 }
 
 void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, float sample, float x) {
@@ -129,12 +134,11 @@ void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, f
     CGFloat pixelRatio = rect.size.width / CGContextConvertSizeToUserSpace(ctx, rect.size).width * _precision;
     
     CGContextSetAllowsAntialiasing(ctx, _antialiasingEnabled);
-    CGContextSetLineWidth(ctx, 1.0 / pixelRatio);
+    CGContextSetLineWidth(ctx, 1.0 / pixelRatio * _lineWidthRatio);
 
     CGContextSetStrokeColorWithColor(ctx, _progressColor.CGColor);
     
     if (_progressPath == nil) {
-
         [self renderWaveformWithSize:rect.size pixelRatio:pixelRatio];
     }
     
@@ -222,6 +226,12 @@ void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, f
     _precision = precision;
     
     [self _invalidatePaths];
+    [self setNeedsDisplay];
+}
+
+- (void)setLineWidthRatio:(CGFloat)lineWidthRatio {
+    _lineWidthRatio = lineWidthRatio;
+    
     [self setNeedsDisplay];
 }
 
