@@ -1,14 +1,17 @@
 SCWaveformView
 ==============
 
-A blazing fast customizable waveform view. Extract the audio section of an asset (which can be both video or audio) and display a waveform. Compared to other libs that are found on the web, this one does not do much memory allocations. Only one pass is also done to create the waveform.
+A blazing fast customizable waveform view. Extract the audio section of an asset (which can be both video or audio) and display a waveform.
+
+The SCWaveformView is optimized to do the less file read possible. When scrolling or displaying another part of the waveform, it will only read whatever it needs to render the new section. It will cache the file data to avoid having to read sections that have been already computed. Furthermore, if it does have to read the file, it will read it by bigger segment to minimize the number of read operations next time the timeRange changes.
 
 Main features:
-  * Can show a play progress
-  * Colors are changeable at runtime without reprocessing the asset
-  * Generated waveforms are retrievable
-  * Set the asset, then you are good to go
-  * ARC
+  * Can show a play progress.
+  * Colors are changeable at runtime without reprocessing the asset.
+  * Doesn't have to read the whole file if you display only a portion of your audio on screen.
+  * Features a scrollable waveform view..
+  * Set the asset, then you are good to go.
+  * ARC.
 
 <img src="http://i.imgur.com/dVGhYBk.png" width=500>
 
@@ -20,7 +23,7 @@ Podfile
 If you are using cocoapods, you can use this project with the following Podfile
 
     platform :ios, '7.0'
-    pod "SCWaveformView", "1.0.0"
+    pod "SCWaveformView"
 
 Example
 -------
@@ -37,13 +40,12 @@ Example
      waveformView.progressColor = [UIColor redColor];
      
      // Set the play progress
-     waveformView.progress = 0.4;
+     waveformView.progressTime = CMTimeMakeWithSeconds(5, 10000);
      
-     // Even though the waveformview will eventually reprocess the waveforms when needed
-     // You can ask it to generate the waveforms right now
-     [waveformView generateWaveforms];
+     // Show only the first second of your asset
+     waveformView.timeRange = CMTimeRangeMake(kCMTimeZero, CMTimeMakeWithSeconds(1, 1));
      
-     // Retrieve the waveforms. for whatever reasons
-     UIImage *progressWaveformImage = waveformView.generatedProgressImage;
-     UIImage *normalWaveformImage = waveformView.generatedNormalImage;
+     // Use it inside a scrollView
+     SCScrollableWaveformView *scrollableWaveformView = [SCScrollableWaveformView new];
+     scrollableWaveformView.waveformView; // Access the waveformView from there
      
