@@ -66,8 +66,12 @@
     sender.selected = !sender.selected;
     
     if (sender.selected) {
+//        self.slider.value = 1;
+//        [self sliderProgressChanged:self.slider];
         [_player play];
     } else {
+//        self.slider.value = 0.5;
+//        [self sliderProgressChanged:self.slider];
         [_player pause];
     }
 }
@@ -80,13 +84,17 @@
 
 - (IBAction)sliderProgressChanged:(UISlider*)sender
 {
-    CMTime progressTime = CMTimeMakeWithSeconds(
-                                                sender.value * CMTimeGetSeconds(self.scrollableWaveformView.waveformView.asset.duration),
-                                                100000);
+    CMTime start = self.scrollableWaveformView.waveformView.timeRange.start;
+    CMTime duration = CMTimeMakeWithSeconds(
+                                            sender.value * CMTimeGetSeconds(self.scrollableWaveformView.waveformView.asset.duration),
+                                            100000);
     
-    self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(self.scrollableWaveformView.waveformView.timeRange.start, progressTime);
-        
-//    self.scrollableWaveformView.waveformView.progressTime = progressTime;
+    // Adjusting the start time
+    if (CMTIME_COMPARE_INLINE(CMTimeAdd(start, duration), >, self.scrollableWaveformView.waveformView.asset.duration)) {
+        start = CMTimeSubtract(self.scrollableWaveformView.waveformView.asset.duration, duration);
+    }
+    
+    self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(start, duration);
 }
 
 @end

@@ -155,7 +155,9 @@
                                             [NSNumber numberWithBool:NO], AVLinearPCMIsFloatKey,
                                             [NSNumber numberWithBool:NO], AVLinearPCMIsNonInterleaved,
                                             nil];
+        
         AVAssetReaderTrackOutput *output = [[AVAssetReaderTrackOutput alloc] initWithTrack:songTrack outputSettings:outputSettingsDict];
+        output.alwaysCopiesSampleData = NO;
         
         AVAssetReader *reader = [[AVAssetReader alloc] initWithAsset:self.asset error:error];
         
@@ -163,6 +165,7 @@
             return NO;
         }
         
+
         reader.timeRange = timeRangeToRead;
         
         [reader addOutput:output];
@@ -209,7 +212,6 @@
                         bigSampleCount  = 0;
                     }
                 }
-                CMSampleBufferInvalidate(sampleBufferRef);
                 CFRelease(sampleBufferRef);
             }
         }

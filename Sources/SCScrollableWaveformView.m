@@ -58,15 +58,16 @@ static char *ScrollableWaveformContentOffsetContext = "ScrollableWaveformContent
 }
 
 - (void)_updateWaveform {
-    _ignoreObservingEvents = YES;
     if (CMTIME_IS_VALID(_waveformView.asset.duration)) {
         CGFloat ratio = self.contentOffset.x / self.contentSize.width;
         CMTime newStart = CMTimeMakeWithSeconds(
                                                 CMTimeGetSeconds(_waveformView.asset.duration) * ratio,
                                                 10000);
-        _waveformView.timeRange = CMTimeRangeMake(newStart, _waveformView.timeRange.duration);
+        
+        if (CMTIME_COMPARE_INLINE(newStart, !=, _waveformView.timeRange.start)) {
+            _waveformView.timeRange = CMTimeRangeMake(newStart, _waveformView.timeRange.duration);
+        }
     }
-    _ignoreObservingEvents = NO;
 }
 
 static BOOL SCApproximateEquals(CGFloat x, CGFloat y, CGFloat x2, CGFloat y2) {
@@ -84,7 +85,6 @@ static BOOL SCApproximateEquals(CGFloat x, CGFloat y, CGFloat x2, CGFloat y2) {
 }
 
 - (void)_updateScrollView {
-    _ignoreObservingEvents = YES;
     CMTimeRange timeRange = _waveformView.timeRange;
     CMTime assetDuration = _waveformView.asset.duration;
     
@@ -100,17 +100,18 @@ static BOOL SCApproximateEquals(CGFloat x, CGFloat y, CGFloat x2, CGFloat y2) {
         
         newContentSize = CGSizeMake(assetDurationSeconds / seconds * self.bounds.size.width, self.bounds.size.height);
         
-        newContentOffset = CGPointMake(CMTimeGetSeconds(timeRange.start) / assetDurationSeconds * self.contentSize.width, 0);
+        newContentOffset = CGPointMake(CMTimeGetSeconds(timeRange.start) / assetDurationSeconds * newContentSize.width, 0);
     }
     
     if (!SCApproximateEquals(newContentSize.width, newContentSize.height, self.contentSize.width, self.contentSize.height)) {
+        _ignoreObservingEvents = YES;
         self.contentSize = newContentSize;
+        _ignoreObservingEvents = NO;
     }
     
     if (!SCApproximateEquals(newContentOffset.x, newContentOffset.y, self.contentOffset.x, self.contentOffset.y)) {
         self.contentOffset = newContentOffset;
     }
-    _ignoreObservingEvents = NO;
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
