@@ -22,8 +22,6 @@
 @property (assign, nonatomic) CGFloat precision;
 @property (assign, nonatomic) CGFloat lineWidthRatio;
 
-@property (assign, nonatomic) BOOL needsDisplayOnProgressTimeChange;
-
 @property (assign, nonatomic) CMTimeRange timeRange;
 
 @end

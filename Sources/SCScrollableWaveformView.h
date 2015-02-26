@@ -11,7 +11,7 @@
 
 @class SCWaveformView;
 
-@interface SCScrollableWaveformView : UIScrollView<UIScrollViewDelegate>
+@interface SCScrollableWaveformView : UIScrollView
 
 @property (readonly, nonatomic) SCWaveformView *waveformView;
 

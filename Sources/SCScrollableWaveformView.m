@@ -48,30 +48,6 @@ static char *ScrollableWaveformContentOffsetContext = "ScrollableWaveformContent
     [self addSubview:_waveformView];
     
     [self addObserver:self forKeyPath:@"contentOffset" options:NSKeyValueObservingOptionNew context:ScrollableWaveformContentOffsetContext];
-    
-    self.delegate = self;
-}
-
-- (void)_setAutoNeedsDisplayedEnabled:(BOOL)enabled {
-    _waveformView.needsDisplayOnProgressTimeChange = enabled;
-}
-
-- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
-    [self _setAutoNeedsDisplayedEnabled:YES];
-}
-
-- (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView {
-    [self _setAutoNeedsDisplayedEnabled:YES];
-}
-
-- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
-    [self _setAutoNeedsDisplayedEnabled:NO];
-}
-
-- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
-    if (!decelerate) {
-        [self _setAutoNeedsDisplayedEnabled:YES];
-    }
 }
 
 - (void)dealloc {

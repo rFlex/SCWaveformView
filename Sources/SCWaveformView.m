@@ -14,10 +14,21 @@
 #define noiseFloor (-50.0)
 #define decibel(amplitude) (20.0 * log10(absX(amplitude) / 32767.0))
 
+@interface SCWaveformLayer : CALayer
+
+@property (assign, nonatomic) CMTime waveformTime;
+
+@end
+
+@implementation SCWaveformLayer
+
+
+@end
+
 @interface SCWaveformView() {
     SCWaveformCache *_cache;
-    CGPathRef _progressPath;
-    CGPathRef _normalPath;
+    NSMutableArray *_waveformLayers;
+    BOOL _needsLayout;
 }
 
 @end
@@ -45,7 +56,6 @@
 }
 
 - (void)commonInit {
-    _needsDisplayOnProgressTimeChange = YES;
     _precision = 1;
     _lineWidthRatio = 1;
 
@@ -53,6 +63,7 @@
     _progressTime = kCMTimeZero;
     
     _cache = [SCWaveformCache new];
+    _waveformLayers = [NSMutableArray new];
     
     self.normalColor = [UIColor blueColor];
     self.progressColor = [UIColor redColor];
@@ -60,38 +71,106 @@
     self.layer.shouldRasterize = NO;
 }
 
-void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, float sample, float x) {
-    float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
+- (void)layoutSubviews {
+    [super layoutSubviews];
     
-    if (pixelHeight < 0) {
-        pixelHeight = 0;
+//    _normalShapeLayer.frame = self.bounds;
+//    _progressShapeLayer.frame = self.bounds;
+    
+    CGFloat pixelRatio = [UIScreen mainScreen].scale * _precision;
+    NSUInteger numberOfLayers = (NSInteger)round(pixelRatio * self.bounds.size.width);
+    
+    while (_waveformLayers.count < numberOfLayers) {
+        SCWaveformLayer *layer = [SCWaveformLayer new];
+        
+        [self.layer addSublayer:layer];
+        
+        [_waveformLayers addObject:layer];
     }
     
-    CGPathMoveToPoint(path, nil, x, halfGraphHeight - pixelHeight);
-    CGPathAddLineToPoint(path, nil, x, halfGraphHeight + pixelHeight);
+    while (_waveformLayers.count > numberOfLayers) {
+        CALayer *layer = [_waveformLayers lastObject];
+        [_waveformLayers removeLastObject];
+        
+        [layer removeFromSuperlayer];
+    }
+    
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
+    
+    CGSize size = self.bounds.size;
+    size.width *= pixelRatio;
+    
+    [self renderWaveformWithSize:size pixelRatio:pixelRatio];
+    
+    [CATransaction commit];
+    _needsLayout = NO;
 }
 
 - (BOOL)renderWaveformWithSize:(CGSize)size pixelRatio:(CGFloat)pixelRatio {
-    float halfGraphHeight = (size.height / 2 * pixelRatio);
+    float halfGraphHeight = size.height / 2;
     
     NSError *error = nil;
     
     __block BOOL reachedProgressPoint = NO;
-    CGMutablePathRef normalPath = CGPathCreateMutable();
-    CGMutablePathRef progressPath = CGPathCreateMutable();
-    __block CGMutablePathRef currentPath = progressPath;
+    __block NSInteger firstIdx = -1;
+    __block NSInteger lastIdx = -1;
     
-    BOOL read = [_cache readTimeRange:_timeRange width:size.width * pixelRatio error:&error handler:^(CGFloat x, float sample, CMTime time) {
+    CGColorRef normalColor = _normalColor.CGColor;
+    CGColorRef progressColor = _progressColor.CGColor;
+    
+    BOOL read = [_cache readTimeRange:_timeRange width:size.width error:&error handler:^(CGFloat x, float sample, CMTime time) {
         if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
             reachedProgressPoint = YES;
-            currentPath = normalPath;
         }
         
-        SCRenderPixelWaveformInPath(currentPath, halfGraphHeight / pixelRatio, sample, x / pixelRatio);
+        float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
+        
+        if (pixelHeight < 0) {
+            pixelHeight = 0;
+        }
+        NSInteger idx = (NSInteger)round(x);
+        
+        if (firstIdx == -1) {
+            firstIdx = idx;
+        }
+        lastIdx = idx;
+        
+        SCWaveformLayer *layer = [_waveformLayers objectAtIndex:idx];
+        CGColorRef destColor = nil;
+        
+        if (reachedProgressPoint) {
+            destColor = normalColor;
+        } else {
+            destColor = progressColor;
+        }
+        
+        if (layer.backgroundColor != destColor) {
+            layer.backgroundColor = destColor;
+        }
+        
+        CGRect newRect = CGRectMake(x / pixelRatio, halfGraphHeight - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
+        if (!CGRectEqualToRect(layer.frame, newRect)) {
+            layer.frame = newRect;
+        }
+        layer.waveformTime = time;
     }];
     
-    _normalPath = normalPath;
-    _progressPath = progressPath;
+    CGColorRef clearColor = [UIColor clearColor].CGColor;
+    
+    if (firstIdx != -1) {
+        for (NSInteger i = 0; i < firstIdx; i++) {
+            CALayer *layer = [_waveformLayers objectAtIndex:i];
+            layer.backgroundColor = clearColor;
+        }
+    }
+    
+    if (lastIdx != -1) {
+        for (NSInteger i = lastIdx + 1; i < _waveformLayers.count; i++) {
+            CALayer *layer = [_waveformLayers objectAtIndex:i];
+            layer.backgroundColor = clearColor;
+        }
+    }
     
     return read;
 }
@@ -126,56 +205,37 @@ void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, f
     return newImage;
 }
 
-- (void)drawRect:(CGRect)rect {
-    CGContextRef ctx = UIGraphicsGetCurrentContext();
-    
-    CGContextClearRect(ctx, rect);
-    
-    CGFloat pixelRatio = rect.size.width / CGContextConvertSizeToUserSpace(ctx, rect.size).width * _precision;
-    
-    CGContextSetAllowsAntialiasing(ctx, _antialiasingEnabled);
-    CGContextSetLineWidth(ctx, 1.0 / pixelRatio * _lineWidthRatio);
-
-    CGContextSetStrokeColorWithColor(ctx, _progressColor.CGColor);
-    
-    if (_progressPath == nil) {
-        [self renderWaveformWithSize:rect.size pixelRatio:pixelRatio];
-    }
-    
-    CGContextAddPath(ctx, _progressPath);
-    
-    CGContextStrokePath(ctx);
-
-    CGContextSetStrokeColorWithColor(ctx, _normalColor.CGColor);
-    
-    CGContextAddPath(ctx, _normalPath);
-    
-    CGContextStrokePath(ctx);
-    
-    [super drawRect:rect];
-}
-
-- (void)_invalidatePaths {
-    if (_normalPath != nil) {
-        CGPathRelease(_normalPath);
-        _normalPath = nil;
-    }
-    if (_progressPath != nil) {
-        CGPathRelease(_progressPath);
-        _progressPath = nil;
+- (void)_updateColors {
+    if (!_needsLayout) {
+        CGColorRef normalColor = _normalColor.CGColor;
+        CGColorRef progressColor = _progressColor.CGColor;
+        CGColorRef destColor = progressColor;
+        CGColorRef clearColor = [UIColor clearColor].CGColor;
+        
+        for (SCWaveformLayer *layer in _waveformLayers) {
+            if (layer.backgroundColor != clearColor) {
+                if (destColor != normalColor && CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
+                    destColor = normalColor;
+                }
+                
+                if (layer.backgroundColor != destColor) {
+                    layer.backgroundColor = destColor;
+                }                
+            }
+        }
     }
 }
 
 - (void)setNormalColor:(UIColor *)normalColor {
     _normalColor = normalColor;
-    
-    [self setNeedsDisplay];
+
+    [self _updateColors];
 }
 
 - (void)setProgressColor:(UIColor *)progressColor {
     _progressColor = progressColor;
     
-    [self setNeedsDisplay];
+    [self _updateColors];
 }
 
 - (AVAsset *)asset {
@@ -186,21 +246,21 @@ void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, f
     [self willChangeValueForKey:@"asset"];
     
     _cache.asset = asset;
-    
-    [self _invalidatePaths];
-    [self setNeedsDisplay];
+
+    [self setNeedsLayout];
     
     [self didChangeValueForKey:@"asset"];
+}
+
+- (void)setNeedsLayout {
+    _needsLayout = YES;
+    [super setNeedsLayout];
 }
 
 - (void)setProgressTime:(CMTime)progressTime {
     _progressTime = progressTime;
     
-    [self _invalidatePaths];
-    
-    if (self.needsDisplayOnProgressTimeChange) {
-        [self setNeedsDisplay];
-    }
+    [self _updateColors];
 }
 
 - (void)setAntialiasingEnabled:(BOOL)antialiasingEnabled {
@@ -215,9 +275,8 @@ void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, f
     [self willChangeValueForKey:@"timeRange"];
     
     _timeRange = timeRange;
-    
-    [self _invalidatePaths];
-    [self setNeedsDisplay];
+
+    [self setNeedsLayout];
     
     [self didChangeValueForKey:@"timeRange"];
 }
@@ -225,14 +284,13 @@ void SCRenderPixelWaveformInPath(CGMutablePathRef path, float halfGraphHeight, f
 - (void)setPrecision:(CGFloat)precision {
     _precision = precision;
     
-    [self _invalidatePaths];
-    [self setNeedsDisplay];
+    [self setNeedsLayout];
 }
 
 - (void)setLineWidthRatio:(CGFloat)lineWidthRatio {
     _lineWidthRatio = lineWidthRatio;
     
-    [self setNeedsDisplay];
+    [self setNeedsLayout];
 }
 
 @end
