@@ -42,6 +42,7 @@
     NSMutableArray *_waveformLayers;
     SCWaveformLayerDelegate *_waveformLayersDelegate;
     BOOL _needsLayout;
+    CMTimeRange _lastRenderedTimeRange;
 }
 
 @end
@@ -71,6 +72,7 @@
 - (void)commonInit {
     _precision = 1;
     _lineWidthRatio = 1;
+    _lastRenderedTimeRange = CMTimeRangeMake(kCMTimeInvalid, kCMTimeInvalid);
 
     _waveformLayersDelegate = [SCWaveformLayerDelegate new];
     _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
@@ -93,6 +95,7 @@
     
     while (_waveformLayers.count < numberOfLayers) {
         SCWaveformLayer *layer = [SCWaveformLayer new];
+        layer.anchorPoint = CGPointMake(0, 0);
         layer.delegate = _waveformLayersDelegate;
         
         [self.layer addSublayer:layer];
@@ -107,11 +110,40 @@
         [layer removeFromSuperlayer];
     }
     
-    [CATransaction begin];
-    [CATransaction setDisableActions:YES];
-    
     CGSize size = self.bounds.size;
     size.width *= pixelRatio;
+    
+    if (CMTIME_IS_VALID(_lastRenderedTimeRange.start) && CMTIME_COMPARE_INLINE(_lastRenderedTimeRange.duration, ==, _timeRange.duration) && _waveformLayers.count > 0) {
+        
+        // We try predict where the layers should be now
+        // This will avoid having to change the size of every layers each time the timeRange changes
+        
+        CMTime timePerPixel = CMTimeMultiplyByRatio(_timeRange.duration, 1, size.width);
+        CMTime difference = CMTimeSubtract(_timeRange.start, _lastRenderedTimeRange.start);
+        
+        Float64 differenceSeconds = CMTimeGetSeconds(difference);
+        int offset = (int)round(differenceSeconds / CMTimeGetSeconds(timePerPixel));
+
+        // We only shift if the offset is less than half the array
+        if (abs(offset) < _waveformLayers.count / 2) {
+            if (offset > 0) {
+                for (int i = 0; i < offset; i++) {
+                    SCWaveformLayer *layer = [_waveformLayers objectAtIndex:0];
+                    [_waveformLayers removeObjectAtIndex:0];
+                    [_waveformLayers addObject:layer];
+                }
+            } else if (offset < 0) {
+                for (int i = offset; i < 0; i++) {
+                    SCWaveformLayer *layer = [_waveformLayers lastObject];
+                    [_waveformLayers removeLastObject];
+                    [_waveformLayers insertObject:layer atIndex:0];
+                }
+            }
+        }
+    }
+    
+    [CATransaction begin];
+    [CATransaction setDisableActions:YES];
     
     [self renderWaveformWithSize:size pixelRatio:pixelRatio];
     
@@ -165,8 +197,10 @@
             
             CGRect newRect = CGRectMake(x / pixelRatio, halfGraphHeight - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
             
-            if (!CGRectEqualToRect(layer.frame, newRect)) {
-                layer.frame = newRect;
+            layer.position = newRect.origin;
+            
+            if (!CGSizeEqualToSize(newRect.size, layer.bounds.size)) {
+                layer.bounds = CGRectMake(0, 0, newRect.size.width, newRect.size.height);
             }
             
             layer.waveformTime = time;
@@ -189,6 +223,7 @@
             layer.backgroundColor = clearColor;
         }
     }
+    _lastRenderedTimeRange = _timeRange;
     
     return read;
 }
