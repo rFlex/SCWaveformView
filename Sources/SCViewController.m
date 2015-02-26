@@ -63,6 +63,12 @@
 {
     [super didReceiveMemoryWarning];
 }
+- (IBAction)precisionChanged:(UISlider *)sender {
+    self.scrollableWaveformView.waveformView.precision = sender.value;
+}
+- (IBAction)lineWidthChanged:(UISlider *)sender {
+    self.scrollableWaveformView.waveformView.lineWidthRatio = sender.value;
+}
 
 - (IBAction)playButtonTapped:(UIButton *)sender {
     sender.selected = !sender.selected;

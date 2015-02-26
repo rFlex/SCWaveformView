@@ -71,17 +71,19 @@
     self.layer.shouldRasterize = NO;
 }
 
+- (id)actionForLayer:(CALayer *)layer forKey:(NSString *)event {
+    return [NSNull null];
+}
+
 - (void)layoutSubviews {
     [super layoutSubviews];
-    
-//    _normalShapeLayer.frame = self.bounds;
-//    _progressShapeLayer.frame = self.bounds;
     
     CGFloat pixelRatio = [UIScreen mainScreen].scale * _precision;
     NSUInteger numberOfLayers = (NSInteger)round(pixelRatio * self.bounds.size.width);
     
     while (_waveformLayers.count < numberOfLayers) {
         SCWaveformLayer *layer = [SCWaveformLayer new];
+        layer.delegate = self;
         
         [self.layer addSublayer:layer];
         
@@ -120,40 +122,46 @@
     CGColorRef progressColor = _progressColor.CGColor;
     
     BOOL read = [_cache readTimeRange:_timeRange width:size.width error:&error handler:^(CGFloat x, float sample, CMTime time) {
-        if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
-            reachedProgressPoint = YES;
-        }
-        
-        float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
-        
-        if (pixelHeight < 0) {
-            pixelHeight = 0;
-        }
         NSInteger idx = (NSInteger)round(x);
         
-        if (firstIdx == -1) {
-            firstIdx = idx;
+        if (idx < _waveformLayers.count) {
+            if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
+                reachedProgressPoint = YES;
+            }
+            
+            float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
+            
+            if (pixelHeight < 0) {
+                pixelHeight = 0;
+            }
+            
+            if (firstIdx == -1) {
+                firstIdx = idx;
+            }
+            lastIdx = idx;
+            
+            SCWaveformLayer *layer = [_waveformLayers objectAtIndex:idx];
+            CGColorRef destColor = nil;
+            
+            if (reachedProgressPoint) {
+                destColor = normalColor;
+            } else {
+                destColor = progressColor;
+            }
+            
+            if (layer.backgroundColor != destColor) {
+                layer.backgroundColor = destColor;
+            }
+            
+            CGRect newRect = CGRectMake(x / pixelRatio, halfGraphHeight - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
+            
+            if (!CGRectEqualToRect(layer.frame, newRect)) {
+                layer.frame = newRect;
+            }
+            
+            layer.waveformTime = time;
+
         }
-        lastIdx = idx;
-        
-        SCWaveformLayer *layer = [_waveformLayers objectAtIndex:idx];
-        CGColorRef destColor = nil;
-        
-        if (reachedProgressPoint) {
-            destColor = normalColor;
-        } else {
-            destColor = progressColor;
-        }
-        
-        if (layer.backgroundColor != destColor) {
-            layer.backgroundColor = destColor;
-        }
-        
-        CGRect newRect = CGRectMake(x / pixelRatio, halfGraphHeight - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
-        if (!CGRectEqualToRect(layer.frame, newRect)) {
-            layer.frame = newRect;
-        }
-        layer.waveformTime = time;
     }];
     
     CGColorRef clearColor = [UIColor clearColor].CGColor;
