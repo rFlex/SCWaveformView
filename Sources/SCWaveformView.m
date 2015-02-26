@@ -25,9 +25,22 @@
 
 @end
 
+@interface SCWaveformLayerDelegate : NSObject
+
+@end
+
+@implementation SCWaveformLayerDelegate
+
+- (id)actionForLayer:(CALayer *)layer forKey:(NSString *)event {
+    return [NSNull null];
+}
+
+@end
+
 @interface SCWaveformView() {
     SCWaveformCache *_cache;
     NSMutableArray *_waveformLayers;
+    SCWaveformLayerDelegate *_waveformLayersDelegate;
     BOOL _needsLayout;
 }
 
@@ -59,6 +72,7 @@
     _precision = 1;
     _lineWidthRatio = 1;
 
+    _waveformLayersDelegate = [SCWaveformLayerDelegate new];
     _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
     _progressTime = kCMTimeZero;
     
@@ -71,10 +85,6 @@
     self.layer.shouldRasterize = NO;
 }
 
-- (id)actionForLayer:(CALayer *)layer forKey:(NSString *)event {
-    return [NSNull null];
-}
-
 - (void)layoutSubviews {
     [super layoutSubviews];
     
@@ -83,7 +93,7 @@
     
     while (_waveformLayers.count < numberOfLayers) {
         SCWaveformLayer *layer = [SCWaveformLayer new];
-        layer.delegate = self;
+        layer.delegate = _waveformLayersDelegate;
         
         [self.layer addSublayer:layer];
         
