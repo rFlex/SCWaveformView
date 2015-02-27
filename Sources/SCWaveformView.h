@@ -13,15 +13,18 @@
 
 @interface SCWaveformView : UIView
 
+@property (readonly, nonatomic) SCWaveformCache *cache;
+
 @property (strong, nonatomic) AVAsset *asset;
 @property (strong, nonatomic) UIColor *normalColor;
 @property (strong, nonatomic) UIColor *progressColor;
 @property (assign, nonatomic) CMTime progressTime;
-@property (assign, nonatomic) BOOL antialiasingEnabled;
 
 @property (assign, nonatomic) CGFloat precision;
 @property (assign, nonatomic) CGFloat lineWidthRatio;
 
 @property (assign, nonatomic) CMTimeRange timeRange;
+
+@property (readonly, nonatomic) CGSize waveformSize;
 
 @end

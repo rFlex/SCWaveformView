@@ -13,9 +13,15 @@
 
 @property (strong, nonatomic) AVAsset *asset;
 
-typedef void (^SCAudioBufferHandler)(CGFloat x, float sample, CMTime time);
+@property (readonly, nonatomic) CMTime timePerPixel;
 
-- (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError **)error handler:(SCAudioBufferHandler)handler;
+@property (readonly, nonatomic) CMTime actualAssetDuration;
+
+typedef void (^SCAudioBufferHandler)(int x, float sample, CMTime time);
+
+- (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError **)error;
+
+- (void)readRange:(NSRange)range atTime:(CMTime)time  handler:(SCAudioBufferHandler)handler;
 
 - (void)invalidate;
 

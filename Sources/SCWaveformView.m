@@ -38,11 +38,12 @@
 @end
 
 @interface SCWaveformView() {
-    SCWaveformCache *_cache;
+//    SCWaveformCache *_cache;
     NSMutableArray *_waveformLayers;
     SCWaveformLayerDelegate *_waveformLayersDelegate;
-    BOOL _needsLayout;
-    CMTimeRange _lastRenderedTimeRange;
+    CALayer *_waveformSuperlayer;
+    NSInteger _firstVisibleIdx;
+    BOOL _graphDirty;
 }
 
 @end
@@ -72,7 +73,6 @@
 - (void)commonInit {
     _precision = 1;
     _lineWidthRatio = 1;
-    _lastRenderedTimeRange = CMTimeRangeMake(kCMTimeInvalid, kCMTimeInvalid);
 
     _waveformLayersDelegate = [SCWaveformLayerDelegate new];
     _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
@@ -80,152 +80,149 @@
     
     _cache = [SCWaveformCache new];
     _waveformLayers = [NSMutableArray new];
+    _graphDirty = YES;
     
     self.normalColor = [UIColor blueColor];
     self.progressColor = [UIColor redColor];
     
     self.layer.shouldRasterize = NO;
+    
+    _waveformSuperlayer = [CALayer layer];
+    _waveformSuperlayer.anchorPoint = CGPointMake(0, 0);
+    _waveformSuperlayer.delegate = _waveformLayersDelegate;
+    
+    [self.layer addSublayer:_waveformSuperlayer];
 }
 
 - (void)layoutSubviews {
     [super layoutSubviews];
     
-    CGFloat pixelRatio = [UIScreen mainScreen].scale * _precision;
-    NSUInteger numberOfLayers = (NSInteger)round(pixelRatio * self.bounds.size.width);
     
-    while (_waveformLayers.count < numberOfLayers) {
-        SCWaveformLayer *layer = [SCWaveformLayer new];
-        layer.anchorPoint = CGPointMake(0, 0);
-        layer.delegate = _waveformLayersDelegate;
-        
-        [self.layer addSublayer:layer];
-        
-        [_waveformLayers addObject:layer];
-    }
-    
-    while (_waveformLayers.count > numberOfLayers) {
-        CALayer *layer = [_waveformLayers lastObject];
-        [_waveformLayers removeLastObject];
-        
-        [layer removeFromSuperlayer];
-    }
-    
+    CGFloat scale = [UIScreen mainScreen].scale;
+    CGFloat pixelRatio = scale * _precision;
     CGSize size = self.bounds.size;
     size.width *= pixelRatio;
     
-    if (CMTIME_IS_VALID(_lastRenderedTimeRange.start) && CMTIME_COMPARE_INLINE(_lastRenderedTimeRange.duration, ==, _timeRange.duration) && _waveformLayers.count > 0) {
+    NSError *error = nil;
+    if ([_cache readTimeRange:_timeRange width:size.width error:&error]) {
+        NSUInteger numberOfLayers = (NSUInteger)ceil(pixelRatio * self.bounds.size.width) + 1;
         
-        // We try predict where the layers should be now
-        // This will avoid having to change the size of every layers each time the timeRange changes
+        while (_waveformLayers.count < numberOfLayers) {
+            SCWaveformLayer *layer = [SCWaveformLayer new];
+            layer.anchorPoint = CGPointMake(0, 0);
+            layer.delegate = _waveformLayersDelegate;
+            
+            [_waveformSuperlayer addSublayer:layer];
+            
+            [_waveformLayers addObject:layer];
+        }
+        
+        while (_waveformLayers.count > numberOfLayers) {
+            CALayer *layer = [_waveformLayers lastObject];
+            [_waveformLayers removeLastObject];
+            
+            [layer removeFromSuperlayer];
+        }
+        
+        CGRect waveformSuperlayerFrame = _waveformSuperlayer.frame;
+        waveformSuperlayerFrame.origin.y = 0;
+        
+        waveformSuperlayerFrame.size = self.waveformSize;
+        if (!CGSizeEqualToSize(waveformSuperlayerFrame.size, _waveformSuperlayer.frame.size)) {
+            _graphDirty = YES;
+        }
+        
         
         CMTime timePerPixel = CMTimeMultiplyByRatio(_timeRange.duration, 1, size.width);
-        CMTime difference = CMTimeSubtract(_timeRange.start, _lastRenderedTimeRange.start);
+        double startRatio = CMTimeGetSeconds(_timeRange.start) / CMTimeGetSeconds(timePerPixel);
+        NSInteger newFirstVisibleIdx = floor(startRatio);
+        waveformSuperlayerFrame.origin.x = -startRatio / pixelRatio;
+        NSRange dirtyRange = NSMakeRange(0, _waveformLayers.count);
         
-        Float64 differenceSeconds = CMTimeGetSeconds(difference);
-        int offset = (int)round(differenceSeconds / CMTimeGetSeconds(timePerPixel));
-
-        // We only shift if the offset is less than half the array
-        if (abs(offset) < _waveformLayers.count / 2) {
-            if (offset > 0) {
-                for (int i = 0; i < offset; i++) {
-                    SCWaveformLayer *layer = [_waveformLayers objectAtIndex:0];
-                    [_waveformLayers removeObjectAtIndex:0];
-                    [_waveformLayers addObject:layer];
-                }
-            } else if (offset < 0) {
-                for (int i = offset; i < 0; i++) {
-                    SCWaveformLayer *layer = [_waveformLayers lastObject];
-                    [_waveformLayers removeLastObject];
-                    [_waveformLayers insertObject:layer atIndex:0];
+        if (!_graphDirty) {
+            int offset = newFirstVisibleIdx - _firstVisibleIdx;
+            int absOffset = abs(offset);
+            
+            if (absOffset < _waveformLayers.count / 2) {
+                dirtyRange.length = absOffset;
+                
+                if (offset > 0) {
+                    dirtyRange.location = _waveformLayers.count - offset;
+                    for (int i = 0; i < offset; i++) {
+                        SCWaveformLayer *layer = [_waveformLayers objectAtIndex:0];
+                        [_waveformLayers removeObjectAtIndex:0];
+                        [_waveformLayers addObject:layer];
+                    }
+                } else if (offset < 0) {
+                    dirtyRange.location = 0;
+                    for (int i = offset; i < 0; i++) {
+                        SCWaveformLayer *layer = [_waveformLayers lastObject];
+                        [_waveformLayers removeLastObject];
+                        [_waveformLayers insertObject:layer atIndex:0];
+                    }
                 }
             }
         }
-    }
-    
-    [CATransaction begin];
-    [CATransaction setDisableActions:YES];
-    
-    [self renderWaveformWithSize:size pixelRatio:pixelRatio];
-    
-    [CATransaction commit];
-    _needsLayout = NO;
-}
-
-- (BOOL)renderWaveformWithSize:(CGSize)size pixelRatio:(CGFloat)pixelRatio {
-    float halfGraphHeight = size.height / 2;
-    
-    NSError *error = nil;
-    
-    __block BOOL reachedProgressPoint = NO;
-    __block NSInteger firstIdx = -1;
-    __block NSInteger lastIdx = -1;
-    
-    CGColorRef normalColor = _normalColor.CGColor;
-    CGColorRef progressColor = _progressColor.CGColor;
-    
-    BOOL read = [_cache readTimeRange:_timeRange width:size.width error:&error handler:^(CGFloat x, float sample, CMTime time) {
-        NSInteger idx = (NSInteger)round(x);
         
-        if (idx < _waveformLayers.count) {
-            if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
-                reachedProgressPoint = YES;
+        _firstVisibleIdx = newFirstVisibleIdx;
+        _waveformSuperlayer.frame = waveformSuperlayerFrame;
+        
+        [CATransaction begin];
+        [CATransaction setDisableActions:YES];
+        
+        CGColorRef normalColor = _normalColor.CGColor;
+        CGColorRef progressColor = _progressColor.CGColor;
+        __block BOOL reachedProgressPoint = NO;
+        CGFloat halfGraphHeight = size.height / 2;
+        CGFloat bandWidth = 1 / pixelRatio;
+        CGFloat pointSize = 1.0 / scale / 2;
+        CMTime assetDuration = [_cache actualAssetDuration];
+        //    NSLog(@"Computing bands %d to %d with duration %fs", dirtyRange.location, dirtyRange.location + dirtyRange.length, CMTimeGetSeconds(_timeRange.duration));
+        
+        [_cache readRange:dirtyRange atTime:_timeRange.start handler:^(int idx, float sample, CMTime time) {
+            if (idx < _waveformLayers.count) {
+                if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
+                    reachedProgressPoint = YES;
+                }
+                
+                float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
+                
+                if (pixelHeight < pointSize) {
+                    if (CMTIME_COMPARE_INLINE(time, <, kCMTimeZero) || CMTIME_COMPARE_INLINE(time, >, assetDuration)) {
+                        pixelHeight = 0;
+                    } else {
+                        pixelHeight = pointSize;
+                    }
+                }
+                
+                SCWaveformLayer *layer = [_waveformLayers objectAtIndex:idx];
+                CGColorRef destColor = nil;
+                
+                if (reachedProgressPoint) {
+                    destColor = normalColor;
+                } else {
+                    destColor = progressColor;
+                }
+                
+                if (layer.backgroundColor != destColor) {
+                    layer.backgroundColor = destColor;
+                }
+                
+                layer.frame = CGRectMake((newFirstVisibleIdx + idx) * bandWidth, halfGraphHeight - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
+                
+                layer.waveformTime = time;
             }
-            
-            float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
-            
-            if (pixelHeight < 0) {
-                pixelHeight = 0;
-            }
-            
-            if (firstIdx == -1) {
-                firstIdx = idx;
-            }
-            lastIdx = idx;
-            
-            SCWaveformLayer *layer = [_waveformLayers objectAtIndex:idx];
-            CGColorRef destColor = nil;
-            
-            if (reachedProgressPoint) {
-                destColor = normalColor;
-            } else {
-                destColor = progressColor;
-            }
-            
-            if (layer.backgroundColor != destColor) {
-                layer.backgroundColor = destColor;
-            }
-            
-            CGRect newRect = CGRectMake(x / pixelRatio, halfGraphHeight - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
-            
-            layer.position = newRect.origin;
-            
-            if (!CGSizeEqualToSize(newRect.size, layer.bounds.size)) {
-                layer.bounds = CGRectMake(0, 0, newRect.size.width, newRect.size.height);
-            }
-            
-            layer.waveformTime = time;
 
-        }
-    }];
-    
-    CGColorRef clearColor = [UIColor clearColor].CGColor;
-    
-    if (firstIdx != -1) {
-        for (NSInteger i = 0; i < firstIdx; i++) {
-            CALayer *layer = [_waveformLayers objectAtIndex:i];
-            layer.backgroundColor = clearColor;
-        }
-    }
-    
-    if (lastIdx != -1) {
-        for (NSInteger i = lastIdx + 1; i < _waveformLayers.count; i++) {
-            CALayer *layer = [_waveformLayers objectAtIndex:i];
-            layer.backgroundColor = clearColor;
+        }];
+
+        _graphDirty = NO;
+        
+        [CATransaction commit];
+    } else {
+        if (error != nil) {
+            NSLog(@"Unable to generate waveform: %@", error.localizedDescription);
         }
     }
-    _lastRenderedTimeRange = _timeRange;
-    
-    return read;
 }
 
 - (UIImage *)generateWaveformImageWithSize:(CGSize)size {
@@ -258,23 +255,27 @@
     return newImage;
 }
 
-- (void)_updateColors {
-    if (!_needsLayout) {
-        CGColorRef normalColor = _normalColor.CGColor;
-        CGColorRef progressColor = _progressColor.CGColor;
-        CGColorRef destColor = progressColor;
-        CGColorRef clearColor = [UIColor clearColor].CGColor;
-        
-        for (SCWaveformLayer *layer in _waveformLayers) {
-            if (layer.backgroundColor != clearColor) {
-                if (destColor != normalColor && CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
-                    destColor = normalColor;
-                }
-                
-                if (layer.backgroundColor != destColor) {
-                    layer.backgroundColor = destColor;
-                }                
+- (void)_updateLayersColor:(BOOL)updateColor lineWidth:(BOOL)lineWidth {
+    CGColorRef normalColor = _normalColor.CGColor;
+    CGColorRef progressColor = _progressColor.CGColor;
+    CGColorRef destColor = progressColor;
+    CGFloat pixelRatio = [UIScreen mainScreen].scale * _precision;
+    
+    for (SCWaveformLayer *layer in _waveformLayers) {
+        if (updateColor) {
+            if (destColor != normalColor && CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
+                destColor = normalColor;
             }
+            
+            if (layer.backgroundColor != destColor) {
+                layer.backgroundColor = destColor;
+            }
+        }
+        
+        if (lineWidth) {
+            CGRect bounds = layer.bounds;
+            bounds.size.width = _lineWidthRatio / pixelRatio;
+            layer.bounds = bounds;
         }
     }
 }
@@ -282,13 +283,13 @@
 - (void)setNormalColor:(UIColor *)normalColor {
     _normalColor = normalColor;
 
-    [self _updateColors];
+    [self _updateLayersColor:YES lineWidth:NO];
 }
 
 - (void)setProgressColor:(UIColor *)progressColor {
     _progressColor = progressColor;
     
-    [self _updateColors];
+    [self _updateLayersColor:YES lineWidth:NO];
 }
 
 - (AVAsset *)asset {
@@ -299,33 +300,25 @@
     [self willChangeValueForKey:@"asset"];
     
     _cache.asset = asset;
+    _graphDirty = YES;
 
     [self setNeedsLayout];
     
     [self didChangeValueForKey:@"asset"];
 }
 
-- (void)setNeedsLayout {
-    _needsLayout = YES;
-    [super setNeedsLayout];
-}
-
 - (void)setProgressTime:(CMTime)progressTime {
     _progressTime = progressTime;
     
-    [self _updateColors];
-}
-
-- (void)setAntialiasingEnabled:(BOOL)antialiasingEnabled {
-    if (_antialiasingEnabled != antialiasingEnabled) {
-        _antialiasingEnabled = antialiasingEnabled;
-        
-        [self setNeedsDisplay];        
-    }
+    [self _updateLayersColor:YES lineWidth:NO];
 }
 
 - (void)setTimeRange:(CMTimeRange)timeRange {
     [self willChangeValueForKey:@"timeRange"];
+    
+    if (CMTIME_COMPARE_INLINE(timeRange.duration, !=, _timeRange.duration)) {
+        _graphDirty = YES;
+    }
     
     _timeRange = timeRange;
 
@@ -337,13 +330,29 @@
 - (void)setPrecision:(CGFloat)precision {
     _precision = precision;
     
+    _graphDirty = YES;
+    
     [self setNeedsLayout];
 }
 
 - (void)setLineWidthRatio:(CGFloat)lineWidthRatio {
     _lineWidthRatio = lineWidthRatio;
     
-    [self setNeedsLayout];
+    [self _updateLayersColor:NO lineWidth:YES];
+}
+
+- (CGSize)waveformSize {
+    CMTimeRange timeRange = _timeRange;
+    CMTime assetDuration = [_cache actualAssetDuration];
+
+    if (CMTIME_IS_INVALID(assetDuration) || CMTIME_IS_INVALID(timeRange.duration) || CMTIME_IS_POSITIVE_INFINITY(timeRange.duration)) {
+        return CGSizeZero;
+    } else {
+        Float64 seconds = CMTimeGetSeconds(timeRange.duration);
+        Float64 assetDurationSeconds = CMTimeGetSeconds(assetDuration);
+        
+        return CGSizeMake(assetDurationSeconds / seconds * self.bounds.size.width, self.bounds.size.height);
+    }
 }
 
 @end

@@ -15,8 +15,10 @@
 @interface SCWaveformCache() {
     NSUInteger _samplesPerPixel;
     CMTime _cachedStartTime;
-    CMTime _cachedEndTime;
+//    CMTime _cachedEndTime;
     NSMutableData *_cachedData;
+    CMTime _actualAssetDuration;
+    BOOL _readEndOfAsset;
 }
 
 @end
@@ -27,8 +29,9 @@
 //    NSLog(@"-- INVALIDATING CACHE --");
     _samplesPerPixel = 0;
     _cachedStartTime = kCMTimeInvalid;
-    _cachedEndTime = kCMTimeInvalid;
+//    _cachedEndTime = kCMTimeInvalid;
     _cachedData = [NSMutableData new];
+    _readEndOfAsset = NO;
 }
 
 - (void)setAsset:(AVAsset *)asset {
@@ -51,7 +54,15 @@
     return NO;
 }
 
-- (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError **)error handler:(SCAudioBufferHandler)handler {
+- (CMTime)actualAssetDuration {
+    if (_readEndOfAsset) {
+        return _actualAssetDuration;
+    }
+    
+    return _asset.duration;
+}
+
+- (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError *__autoreleasing *)error {
     if (self.asset == nil) {
         return NO;
     }
@@ -60,8 +71,10 @@
     if (CMTIME_COMPARE_INLINE(timeRangeToRead.start, <, kCMTimeZero)) {
         timeRangeToRead.start = kCMTimeZero;
     }
+    
+    CMTime assetDuration = [self actualAssetDuration];
     if (CMTIME_IS_POSITIVE_INFINITY(timeRangeToRead.duration)) {
-        timeRangeToRead.duration = self.asset.duration;
+        timeRangeToRead.duration = assetDuration;
     }
     
     NSArray *audioTrackArray = [self.asset tracksWithMediaType:AVMediaTypeAudio];
@@ -71,7 +84,7 @@
     }
     
     AVAssetTrack *songTrack = [audioTrackArray objectAtIndex:0];
-
+    
     UInt32 channelCount;
     NSArray *formatDesc = songTrack.formatDescriptions;
     UInt32 sampleRate = 0;
@@ -92,20 +105,21 @@
     
     NSUInteger samplesPerPixel = totalSamples / width;
     samplesPerPixel = samplesPerPixel < 1 ? 1 : samplesPerPixel;
-
-    CMTime timePerPixel = CMTimeMultiplyByRatio(timeRangeToRead.duration, 1, width);
+    _timePerPixel = CMTimeMultiplyByRatio(timeRangeToRead.duration, 1, width);
+    
+    CMTime cacheDuration = CMTimeMultiply(_timePerPixel, _cachedData.length / sizeof(float));
+    CMTime cacheEndTime = CMTimeAdd(_cachedStartTime, cacheDuration);
     
     if (samplesPerPixel != _samplesPerPixel ||
-        CMTIME_COMPARE_INLINE(CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration), <, _cachedStartTime) ||
-        CMTIME_COMPARE_INLINE(timeRangeToRead.start, >, _cachedEndTime)) {
-//        NSLog(@"CachedStartTime: %fs, CachedEndTime: %fs, Start: %fs, End: %fs, Duration: %fs", CMTimeGetSeconds(_cachedStartTime), CMTimeGetSeconds(_cachedEndTime), CMTimeGetSeconds(timeRangeToRead.start),
-//              CMTimeGetSeconds(CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration)),
-//              CMTimeGetSeconds(timeRangeToRead.duration));
+        CMTIME_COMPARE_INLINE(CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration), <, _cachedStartTime) || CMTIME_COMPARE_INLINE(timeRangeToRead.start, >, cacheEndTime)) {
         [self invalidate];
+        cacheDuration = kCMTimeZero;
+        cacheEndTime = kCMTimeInvalid;
+        
     }
+    timeRangeToRead.duration.value = timeRangeToRead.duration.value - timeRangeToRead.duration.value % samplesPerPixel + samplesPerPixel;
     
     CMTime newCacheStartTime = timeRangeToRead.start;
-    CMTime newCacheEndTime = CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration);
     
     BOOL shouldReadAsset = YES;
     BOOL shouldAppendPageAtBeginning = YES;
@@ -123,12 +137,10 @@
             }
             
             newCacheStartTime = timeRangeToRead.start;
-            newCacheEndTime = _cachedEndTime;
         } else {
-            if (CMTIME_COMPARE_INLINE(CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration), >, _cachedEndTime)) {
-                timeRangeToRead.start = _cachedEndTime;
+            if (CMTIME_COMPARE_INLINE(CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration), >, cacheEndTime)) {
+                timeRangeToRead.start = cacheEndTime;
                 newCacheStartTime = _cachedStartTime;
-                newCacheEndTime = CMTimeAdd(_cachedEndTime, timeRangeToRead.duration);
                 
                 shouldAppendPageAtBeginning = NO;
             } else {
@@ -137,14 +149,13 @@
         }
     }
     
-    if (CMTIME_COMPARE_INLINE(CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration), >, self.asset.duration)) {
-        CMTime adjustedDuration = CMTimeSubtract(self.asset.duration, timeRangeToRead.start);
-        newCacheEndTime = self.asset.duration;
-        timeRangeToRead.duration = adjustedDuration;
-        
-        if (shouldReadAsset && CMTIME_IS_VALID(_cachedEndTime) && CMTIME_COMPARE_INLINE(_cachedEndTime, >=, newCacheEndTime)) {
-            shouldReadAsset = NO;
+    BOOL isLastSegment = NO;
+    
+    if (CMTIME_COMPARE_INLINE(CMTimeAdd(timeRangeToRead.start, timeRangeToRead.duration), >, assetDuration)) {
+        if (shouldReadAsset) {
+            shouldReadAsset = !_readEndOfAsset;
         }
+        isLastSegment = YES;
     }
     
     if (shouldReadAsset) {
@@ -165,7 +176,6 @@
             return NO;
         }
         
-
         reader.timeRange = timeRangeToRead;
         
         [reader addOutput:output];
@@ -214,11 +224,11 @@
             }
         }
         
-//        // Rendering the last pixel
-//        bigSample = bigSampleCount > 0 ? bigSample / (double)bigSampleCount : noiseFloor;
-//        if (currentX < width) {
-//            handler(currentX, bigSample);
-//        }
+        if (bigSampleCount != 0 && isLastSegment) {
+            float averageSample = bigSample / (float)bigSampleCount;
+
+            [data appendBytes:&averageSample length:sizeof(float)];
+        }
         
         if (shouldAppendPageAtBeginning) {
             [data appendData:_cachedData];
@@ -228,32 +238,36 @@
         }
         
         _cachedStartTime = newCacheStartTime;
-        _cachedEndTime = newCacheEndTime;
         _samplesPerPixel = samplesPerPixel;
         
-//        NSLog(@"Read timeRange %fs with duration %fs. New cache length: %u (%fs from %fs)", CMTimeGetSeconds(timeRangeToRead.start), CMTimeGetSeconds(timeRangeToRead.duration), (uint)_cachedData.length, CMTimeGetSeconds(_cachedStartTime), CMTimeGetSeconds(_cachedEndTime));
+        if (isLastSegment) {
+            _readEndOfAsset = YES;
+            _actualAssetDuration = CMTimeAdd(_cachedStartTime, CMTimeMultiply(_timePerPixel, _cachedData.length / sizeof(float)));
+        }
+        
+        NSLog(@"Read timeRange %fs with duration %fs. New cache duration: %fs (end bounds: %fs)", CMTimeGetSeconds(timeRangeToRead.start), CMTimeGetSeconds(timeRangeToRead.duration),
+              CMTimeGetSeconds(CMTimeMultiply(_timePerPixel, _cachedData.length / sizeof(float))), CMTimeGetSeconds(CMTimeAdd(_cachedStartTime, CMTimeMultiply(_timePerPixel, _cachedData.length / sizeof(float)))));
     }
     
-    float indexRatio = (CMTimeGetSeconds(timeRange.start) - CMTimeGetSeconds(_cachedStartTime)) / CMTimeGetSeconds(CMTimeSubtract(_cachedEndTime, _cachedStartTime));
     
-    int indexAtStart = ((_cachedData.length / sizeof(float)) * indexRatio);
-//    NSLog(@"At %fs (%fs from %fs) -> %f", CMTimeGetSeconds(timeRange.start), CMTimeGetSeconds(_cachedStartTime), CMTimeGetSeconds(_cachedEndTime), indexRatio);
+    return YES;
+}
 
+- (void)readRange:(NSRange)range atTime:(CMTime)time handler:(SCAudioBufferHandler)handler {
+    int indexAtStart = ceil(CMTimeGetSeconds(CMTimeSubtract(time, _cachedStartTime)) / CMTimeGetSeconds(_timePerPixel));
+    
     float *samples = _cachedData.mutableBytes;
     
-    for (int x = 0; x < width; x++) {
+    for (int x = range.location, length = range.location + range.length; x < length; x++) {
         int idx = indexAtStart + x;
+        float sample = -INFINITY;
         
-        if (idx >= 0) {
-            if (idx * sizeof(float) >= _cachedData.length) {
-                break;
-            }
-            handler(x, samples[idx], CMTimeAdd(_cachedStartTime, CMTimeMultiplyByFloat64(timePerPixel, idx)));
+        if (idx >= 0 && idx * sizeof(float) < _cachedData.length) {
+            sample = samples[idx];
         }
+        
+        handler(x, sample, CMTimeAdd(_cachedStartTime, CMTimeMultiplyByFloat64(_timePerPixel, idx)));
     }
-    
-
-    return YES;
 }
 
 @end

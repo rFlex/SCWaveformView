@@ -74,7 +74,8 @@
     sender.selected = !sender.selected;
     
     if (sender.selected) {
-        [_player play];
+        [self.scrollableWaveformView.waveformView.cache invalidate];
+//        [_player play];
     } else {
         [_player pause];
     }

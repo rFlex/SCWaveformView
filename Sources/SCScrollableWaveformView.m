@@ -58,10 +58,11 @@ static char *ScrollableWaveformContentOffsetContext = "ScrollableWaveformContent
 }
 
 - (void)_updateWaveform {
-    if (CMTIME_IS_VALID(_waveformView.asset.duration)) {
+    CMTime actualAssetTime = _waveformView.cache.actualAssetDuration;
+    if (CMTIME_IS_VALID(actualAssetTime)) {
         CGFloat ratio = self.contentOffset.x / self.contentSize.width;
         CMTime newStart = CMTimeMakeWithSeconds(
-                                                CMTimeGetSeconds(_waveformView.asset.duration) * ratio,
+                                                CMTimeGetSeconds(actualAssetTime) * ratio,
                                                 10000);
         
         if (CMTIME_COMPARE_INLINE(newStart, !=, _waveformView.timeRange.start)) {
@@ -86,7 +87,7 @@ static BOOL SCApproximateEquals(CGFloat x, CGFloat y, CGFloat x2, CGFloat y2) {
 
 - (void)_updateScrollView {
     CMTimeRange timeRange = _waveformView.timeRange;
-    CMTime assetDuration = _waveformView.asset.duration;
+    CMTime assetDuration = _waveformView.cache.actualAssetDuration;
     
     CGPoint newContentOffset;
     CGSize newContentSize;
