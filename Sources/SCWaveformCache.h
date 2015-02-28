@@ -17,7 +17,11 @@
 
 @property (readonly, nonatomic) CMTime actualAssetDuration;
 
-typedef void (^SCAudioBufferHandler)(int x, float sample, CMTime time);
+@property (readonly, nonatomic) NSUInteger actualNumberOfChannels;
+
+@property (assign, nonatomic) NSUInteger maxChannels;
+
+typedef void (^SCAudioBufferHandler)(int channel, int x, float sample, CMTime time);
 
 - (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError **)error;
 

@@ -10,12 +10,12 @@
 #define absX(x) (x < 0 ? 0 - x : x)
 #define minMaxX(x, mn, mx) (x <= mn ? mn : (x >= mx ? mx : x))
 #define noiseFloor (-50.0)
-#define decibel(amplitude) (20.0 * log10(absX(amplitude) / 32767.0))
+#define decibel(amplitude) (20.0 * log10(absX(amplitude)))
 
 @interface SCWaveformCache() {
     NSUInteger _samplesPerPixel;
     CMTime _cachedStartTime;
-    NSMutableData *_cachedData;
+    NSMutableArray *_channelsCachedData;
     CMTime _actualAssetDuration;
     BOOL _readEndOfAsset;
     BOOL _readStartOfAsset;
@@ -25,11 +25,25 @@
 
 @implementation SCWaveformCache
 
+- (id)init {
+    self = [super init];
+    
+    if (self) {
+        _maxChannels = 1;
+    }
+    
+    return self;
+}
+
 - (void)invalidate {
 //    NSLog(@"-- INVALIDATING CACHE --");
     _samplesPerPixel = 0;
     _cachedStartTime = kCMTimeInvalid;
-    _cachedData = [NSMutableData new];
+    _channelsCachedData = [NSMutableArray new];
+    
+    for (int i = 0; i < _maxChannels; i++) {
+        [_channelsCachedData addObject:[NSMutableData new]];
+    }
     _readEndOfAsset = NO;
     _readStartOfAsset = NO;
 }
@@ -63,7 +77,11 @@
 }
 
 - (CMTime)cacheDuration {
-    return CMTimeMultiply(_timePerPixel, (int)(_cachedData.length / sizeof(float)));
+    if (_channelsCachedData.count == 0) {
+        return kCMTimeZero;
+    }
+    NSData *cachedData = _channelsCachedData.firstObject;
+    return CMTimeMultiply(_timePerPixel, (int)(cachedData.length / sizeof(float)));
 }
 
 - (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError *__autoreleasing *)error {
@@ -103,6 +121,10 @@
         sampleRate = (UInt32)fmtDesc->mSampleRate;
     }
     
+    if (channelCount > _maxChannels) {
+        channelCount = _maxChannels;
+    }
+    
     timeRange.duration = CMTimeConvertScale(timeRange.duration, sampleRate, kCMTimeRoundingMethod_Default);
     UInt64 totalSamples = timeRange.duration.value;
     
@@ -129,6 +151,10 @@
         [self invalidate];
         cacheDuration = kCMTimeZero;
         cacheEndTime = kCMTimeInvalid;
+    }
+    
+    while (channelCount < [self actualNumberOfChannels]) {
+        [_channelsCachedData removeLastObject];
     }
     
     BOOL shouldReadAsset = !(_readStartOfAsset && _readEndOfAsset);
@@ -176,10 +202,11 @@
         
         NSDictionary *outputSettingsDict = @{
                                              AVFormatIDKey : [NSNumber numberWithInt:kAudioFormatLinearPCM],
-                                             AVLinearPCMBitDepthKey : @16,
+                                             AVLinearPCMBitDepthKey : @32,
                                              AVLinearPCMIsBigEndianKey : @NO,
-                                             AVLinearPCMIsFloatKey : @NO,
-                                             AVLinearPCMIsNonInterleaved : @NO
+                                             AVLinearPCMIsFloatKey : @YES,
+                                             AVLinearPCMIsNonInterleaved : @NO,
+                                             AVNumberOfChannelsKey : [NSNumber numberWithUnsignedInteger:channelCount]
                                              };
         
         AVAssetReaderTrackOutput *output = [[AVAssetReaderTrackOutput alloc] initWithTrack:songTrack outputSettings:outputSettingsDict];
@@ -197,19 +224,35 @@
         
         [reader startReading];
         
-        double bigSample = 0;
         NSUInteger bigSampleCount = 0;
-        NSMutableData *data = [NSMutableData new];
-        UInt32 bytesPerInputSample = 2 * channelCount;
+        NSMutableArray *channelsData = [NSMutableArray new];
+        
+        for (int i = 0; i < channelCount; i++) {
+            [channelsData addObject:[NSMutableData new]];
+        }
+        
+        UInt32 bytesPerInputSample = 4 * channelCount;
         CMTime beginTime = kCMTimeInvalid;
         long long sampleRead = 0;
         NSUInteger maxDataLength = sizeof(float) * ceil(CMTimeGetSeconds(timeRange.duration) / CMTimeGetSeconds(_timePerPixel));
         BOOL reachedStart = NO;
         
+        double *bigSamples = malloc(sizeof(double) * channelCount);
+        memset(bigSamples, 0, sizeof(double) * channelCount);
+        
+        CFTimeInterval start = CACurrentMediaTime();
+        CFTimeInterval timeTakenCopy = 0;
+        CFTimeInterval timeTakenProcessing = 0;
+        
         while (reader.status == AVAssetReaderStatusReading) {
+            
+            CFTimeInterval copy = CACurrentMediaTime();
             CMSampleBufferRef sampleBufferRef = [output copyNextSampleBuffer];
+            timeTakenCopy += (CACurrentMediaTime() - copy);
             
             if (sampleBufferRef) {
+                copy = CACurrentMediaTime();
+                
                 CMBlockBufferRef blockBufferRef = CMSampleBufferGetDataBuffer(sampleBufferRef);
                 CMTime time = CMSampleBufferGetPresentationTimeStamp(sampleBufferRef);
                 
@@ -218,16 +261,19 @@
                 char *dataPointer;
                 CMBlockBufferGetDataPointer(blockBufferRef, 0, &bufferLength, nil, &dataPointer);
                 
-                SInt16 *samples = (SInt16 *)dataPointer;
+                Float32 *samples = (Float32 *)dataPointer;
                 int sampleCount = (int)(bufferLength / bytesPerInputSample);
+                int currentChannel = 0;
+                
                 for (int i = 0; i < sampleCount; i++) {
-                    Float32 sample = (Float32) *samples++;
+                    Float32 sample = *samples++;
                     sample = decibel(sample);
                     sample = minMaxX(sample, noiseFloor, 0);
+                    BOOL isLastChannel = currentChannel + 1 == channelCount;
                     
-                    for (int j = 1; j < channelCount; j++) {
-                        samples++;
-                    }
+//                    for (int j = 1; j < channelCount; j++) {
+//                        samples++;
+//                    }
                     
                     if (reachedStart || CMTIME_COMPARE_INLINE(time, >=, timeRange.start)) {
                         if (CMTIME_IS_INVALID(beginTime)) {
@@ -236,14 +282,25 @@
                         
                         sampleRead++;
                         
-                        bigSample += sample;
-                        bigSampleCount++;
+                        bigSamples[currentChannel] += sample;
                         
+                        if (isLastChannel) {
+                            bigSampleCount++;
+                        }
+                       
                         if (bigSampleCount == samplesPerPixel) {
-                            float averageSample = (float)(bigSample / (double)bigSampleCount);
+                            float averageSample = (float)(bigSamples[currentChannel] / (double)bigSampleCount);
                             
-                            bigSample = 0;
-                            bigSampleCount = 0;
+//                            averageSample = decibel(averageSample);
+//                            averageSample = minMaxX(averageSample, noiseFloor, 0);
+                            
+                            bigSamples[currentChannel] = 0;
+                            
+                            if (isLastChannel) {
+                                bigSampleCount = 0;
+                            }
+                            
+                            NSMutableData *data = [channelsData objectAtIndex:currentChannel];
                             
                             if (data.length + sizeof(float) <= maxDataLength) {
                                 [data appendBytes:&averageSample length:sizeof(float)];
@@ -252,26 +309,46 @@
                             }
                         }
                     }
-                    time.value++;
+                    
+                    if (isLastChannel) {
+                        time.value++;
+                    }
+                    
+                    currentChannel = (currentChannel + 1) % channelCount;
                 }
                 CFRelease(sampleBufferRef);
+                
+                timeTakenProcessing += (CACurrentMediaTime() - copy);
             }
         }
         
         if (bigSampleCount != 0 && isLastSegment) {
-            float averageSample = bigSample / (float)bigSampleCount;
+            for (int i = 0; i < channelCount; i++) {
+                float averageSample = (float)(bigSamples[i] / (double)bigSampleCount);
+                NSMutableData *data = [channelsData objectAtIndex:i];
 
-            [data appendBytes:&averageSample length:sizeof(float)];
+                [data appendBytes:&averageSample length:sizeof(float)];
+            }
         }
+        
+        free(bigSamples);
+        
 //        NSLog(@"Read %lld samples and generated %d cache entries (timePerPixel: %fs, samplesPerPixel: %d)", sampleRead, (int)(data.length / sizeof(float)), CMTimeGetSeconds(_timePerPixel), (int)samplesPerPixel);
 //        NSLog(@"Duration requested: %fs, actual got: %fs", CMTimeGetSeconds(timeRange.duration), CMTimeGetSeconds(CMTimeMultiply(_timePerPixel, (int)(data.length / sizeof(float)))));
-
-        if (shouldAppendPageAtBeginning) {
-            [data appendData:_cachedData];
-            _cachedData = data;
-        } else {
-            [_cachedData appendData:data];
+        
+        for (int i = 0; i < channelCount; i++) {
+            NSMutableData *data = [channelsData objectAtIndex:i];
+            NSMutableData *cachedData = [_channelsCachedData objectAtIndex:i];
+            
+            if (shouldAppendPageAtBeginning) {
+                [data appendData:cachedData];
+                [_channelsCachedData setObject:data atIndexedSubscript:i];
+            } else {
+                [cachedData appendData:data];
+            }
         }
+
+        NSLog(@"Read file in %fs (copy: %fs, processing: %fs)", (float)(CACurrentMediaTime() - start), (float)timeTakenCopy, (float)timeTakenProcessing);
         
         if (shouldSetStartTime) {
             if (CMTIME_IS_VALID(beginTime)) {
@@ -284,13 +361,13 @@
         
         if (isLastSegment) {
             _readEndOfAsset = YES;
-            _actualAssetDuration = CMTimeAdd(_cachedStartTime, CMTimeMultiply(_timePerPixel, (int)(_cachedData.length / sizeof(float))));
+            _actualAssetDuration = CMTimeAdd(_cachedStartTime, [self cacheDuration]);
         }
         if (isFirstSegment) {
             _readStartOfAsset = YES;
             
             if (_readEndOfAsset) {
-                _actualAssetDuration = CMTimeMultiply(_timePerPixel, (int)(_cachedData.length / sizeof(float)));
+                _actualAssetDuration = [self cacheDuration];
             }
         }
         
@@ -305,20 +382,35 @@
 - (void)readRange:(NSRange)range atTime:(CMTime)time handler:(SCAudioBufferHandler)handler {
     int indexAtStart = floor(CMTimeGetSeconds(CMTimeSubtract(time, _cachedStartTime)) / CMTimeGetSeconds(_timePerPixel));
     
-    float *samples = _cachedData.mutableBytes;
+    for (int i = 0; i < _channelsCachedData.count; i++) {
+        NSMutableData *data = [_channelsCachedData objectAtIndex:i];
+        float *samples = data.mutableBytes;
+        
+        for (int x = (int)range.location, length = (int)(range.location + range.length); x < length; x++) {
+            int idx = indexAtStart + x;
+            float sample = -INFINITY;
+            
+            if (idx >= 0 && idx * sizeof(float) < data.length) {
+                sample = samples[idx];
+            }
     
-    for (int x = (int)range.location, length = (int)(range.location + range.length); x < length; x++) {
-        int idx = indexAtStart + x;
-        float sample = -INFINITY;
-        
-        if (idx >= 0 && idx * sizeof(float) < _cachedData.length) {
-            sample = samples[idx];
-        } else if (idx * sizeof(float) >= _cachedData.length) {
-//            NSLog(@"Out of bounds");
+            handler(i, x, sample, CMTimeAdd(_cachedStartTime, CMTimeMultiplyByFloat64(_timePerPixel, idx)));
         }
-        
-        handler(x, sample, CMTimeAdd(_cachedStartTime, CMTimeMultiplyByFloat64(_timePerPixel, idx)));
     }
+    
+
+}
+
+- (void)setMaxChannels:(NSUInteger)maxChannels {
+    if (_maxChannels != maxChannels) {
+        _maxChannels = maxChannels;
+        
+        [self invalidate];
+    }
+}
+
+- (NSUInteger)actualNumberOfChannels {
+    return _channelsCachedData.count;
 }
 
 @end

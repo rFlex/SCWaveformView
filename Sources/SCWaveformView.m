@@ -38,7 +38,7 @@
 @end
 
 @interface SCWaveformView() {
-//    SCWaveformCache *_cache;
+    SCWaveformCache *_cache;
     NSMutableArray *_waveformLayers;
     SCWaveformLayerDelegate *_waveformLayersDelegate;
     CALayer *_waveformSuperlayer;
@@ -178,7 +178,7 @@
         CMTime assetDuration = [_cache actualAssetDuration];
         //    NSLog(@"Computing bands %d to %d with duration %fs", dirtyRange.location, dirtyRange.location + dirtyRange.length, CMTimeGetSeconds(_timeRange.duration));
         
-        [_cache readRange:dirtyRange atTime:_timeRange.start handler:^(int idx, float sample, CMTime time) {
+        [_cache readRange:dirtyRange atTime:_timeRange.start handler:^(int channel, int idx, float sample, CMTime time) {
             if (idx < _waveformLayers.count) {
                 if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
                     reachedProgressPoint = YES;
@@ -211,7 +211,6 @@
                 
                 layer.waveformTime = time;
             }
-
         }];
 
         _graphDirty = NO;
@@ -352,6 +351,30 @@
         
         return CGSizeMake(assetDurationSeconds / seconds * self.bounds.size.width, self.bounds.size.height);
     }
+}
+
+- (CMTime)actualAssetDuration {
+    return _cache.actualAssetDuration;
+}
+
+- (NSUInteger)maxChannels {
+    return _cache.maxChannels;
+}
+
+- (void)setMaxChannels:(NSUInteger)maxChannels {
+    _cache.maxChannels = maxChannels;
+    
+    _graphDirty = YES;
+    
+    [self setNeedsLayout];
+}
+
+- (void)setChannelStartIndex:(NSUInteger)channelStartIndex {
+    _channelStartIndex = channelStartIndex;
+    
+    _graphDirty = YES;
+    
+    [self setNeedsLayout];
 }
 
 @end
