@@ -63,9 +63,11 @@ static char *ScrollableWaveformContentOffsetContext = "ScrollableWaveformContent
         CGFloat ratio = self.contentOffset.x / self.contentSize.width;
         CMTime newStart = CMTimeMakeWithSeconds(
                                                 CMTimeGetSeconds(actualAssetTime) * ratio,
-                                                10000);
+                                                _waveformView.timeRange.start.timescale);
         
         if (CMTIME_COMPARE_INLINE(newStart, !=, _waveformView.timeRange.start)) {
+//            NSLog(@"Updating timeRange to %fs", CMTimeGetSeconds(newStart));
+
             _waveformView.timeRange = CMTimeRangeMake(newStart, _waveformView.timeRange.duration);
         }
     }
@@ -111,6 +113,7 @@ static BOOL SCApproximateEquals(CGFloat x, CGFloat y, CGFloat x2, CGFloat y2) {
     }
     
     if (!SCApproximateEquals(newContentOffset.x, newContentOffset.y, self.contentOffset.x, self.contentOffset.y)) {
+//        NSLog(@"Updating contentOffset to %@", NSStringFromCGPoint(self.contentOffset));
         self.contentOffset = newContentOffset;
     }
 }

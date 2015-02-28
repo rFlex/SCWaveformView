@@ -42,7 +42,7 @@
     NSMutableArray *_waveformLayers;
     SCWaveformLayerDelegate *_waveformLayersDelegate;
     CALayer *_waveformSuperlayer;
-    NSInteger _firstVisibleIdx;
+    int _firstVisibleIdx;
     BOOL _graphDirty;
 }
 
@@ -97,7 +97,6 @@
 - (void)layoutSubviews {
     [super layoutSubviews];
     
-    
     CGFloat scale = [UIScreen mainScreen].scale;
     CGFloat pixelRatio = scale * _precision;
     CGSize size = self.bounds.size;
@@ -135,7 +134,7 @@
         
         CMTime timePerPixel = CMTimeMultiplyByRatio(_timeRange.duration, 1, size.width);
         double startRatio = CMTimeGetSeconds(_timeRange.start) / CMTimeGetSeconds(timePerPixel);
-        NSInteger newFirstVisibleIdx = floor(startRatio);
+        int newFirstVisibleIdx = floor(startRatio);
         waveformSuperlayerFrame.origin.x = -startRatio / pixelRatio;
         NSRange dirtyRange = NSMakeRange(0, _waveformLayers.count);
         
@@ -188,7 +187,7 @@
                 float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
                 
                 if (pixelHeight < pointSize) {
-                    if (CMTIME_COMPARE_INLINE(time, <, kCMTimeZero) || CMTIME_COMPARE_INLINE(time, >, assetDuration)) {
+                    if (CMTIME_COMPARE_INLINE(time, <, kCMTimeZero) || CMTIME_COMPARE_INLINE(time, >=, assetDuration)) {
                         pixelHeight = 0;
                     } else {
                         pixelHeight = pointSize;
