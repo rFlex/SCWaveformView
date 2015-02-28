@@ -54,6 +54,10 @@
     }
 }
 
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    return UIStatusBarStyleLightContent;
+}
+
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [_player removeTimeObserver:_observer];
@@ -74,8 +78,8 @@
     sender.selected = !sender.selected;
     
     if (sender.selected) {
-        [self.scrollableWaveformView.waveformView.cache invalidate];
-//        [_player play];
+//        [self.scrollableWaveformView.waveformView.cache invalidate];
+        [_player play];
     } else {
         [_player pause];
     }
