@@ -63,10 +63,6 @@
     [_player removeTimeObserver:_observer];
 }
 
-- (void)didReceiveMemoryWarning
-{
-    [super didReceiveMemoryWarning];
-}
 - (IBAction)precisionChanged:(UISlider *)sender {
     self.scrollableWaveformView.waveformView.precision = sender.value;
 }
@@ -78,7 +74,6 @@
     sender.selected = !sender.selected;
     
     if (sender.selected) {
-//        [self.scrollableWaveformView.waveformView.cache invalidate];
         [_player play];
     } else {
         [_player pause];
@@ -89,6 +84,9 @@
     CGFloat hue = ((CGFloat)arc4random_uniform(10000)) / 10000.0;
     self.scrollableWaveformView.waveformView.progressColor = [UIColor colorWithHue:hue saturation:1 brightness:1 alpha:1];
     self.scrollableWaveformView.waveformView.normalColor = [UIColor colorWithHue:hue saturation:0.5 brightness:1 alpha:1];
+}
+- (IBAction)stereoSwitchChanged:(UISwitch *)sender {
+    self.scrollableWaveformView.waveformView.channelEndIndex = sender.on ? 1 : 0;
 }
 
 - (IBAction)sliderProgressChanged:(UISlider*)sender

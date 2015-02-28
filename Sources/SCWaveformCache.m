@@ -231,7 +231,6 @@
             [channelsData addObject:[NSMutableData new]];
         }
         
-        UInt32 bytesPerInputSample = 4 * channelCount;
         CMTime beginTime = kCMTimeInvalid;
         long long sampleRead = 0;
         NSUInteger maxDataLength = sizeof(float) * ceil(CMTimeGetSeconds(timeRange.duration) / CMTimeGetSeconds(_timePerPixel));
@@ -262,7 +261,7 @@
                 CMBlockBufferGetDataPointer(blockBufferRef, 0, &bufferLength, nil, &dataPointer);
                 
                 Float32 *samples = (Float32 *)dataPointer;
-                int sampleCount = (int)(bufferLength / bytesPerInputSample);
+                int sampleCount = (int)(bufferLength / sizeof(Float32));
                 int currentChannel = 0;
                 
                 for (int i = 0; i < sampleCount; i++) {
@@ -276,6 +275,8 @@
 //                    }
                     
                     if (reachedStart || CMTIME_COMPARE_INLINE(time, >=, timeRange.start)) {
+                        reachedStart = YES;
+                        
                         if (CMTIME_IS_INVALID(beginTime)) {
                             beginTime = time;
                         }
@@ -284,7 +285,7 @@
                         
                         bigSamples[currentChannel] += sample;
                         
-                        if (isLastChannel) {
+                        if (currentChannel == 0) {
                             bigSampleCount++;
                         }
                        
@@ -397,8 +398,6 @@
             handler(i, x, sample, CMTimeAdd(_cachedStartTime, CMTimeMultiplyByFloat64(_timePerPixel, idx)));
         }
     }
-    
-
 }
 
 - (void)setMaxChannels:(NSUInteger)maxChannels {

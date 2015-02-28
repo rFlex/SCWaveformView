@@ -39,7 +39,7 @@
 
 @interface SCWaveformView() {
     SCWaveformCache *_cache;
-    NSMutableArray *_waveformLayers;
+    NSMutableArray *_waveforms;
     SCWaveformLayerDelegate *_waveformLayersDelegate;
     CALayer *_waveformSuperlayer;
     int _firstVisibleIdx;
@@ -79,7 +79,7 @@
     _progressTime = kCMTimeZero;
     
     _cache = [SCWaveformCache new];
-    _waveformLayers = [NSMutableArray new];
+    _waveforms = [NSMutableArray new];
     _graphDirty = YES;
     
     self.normalColor = [UIColor blueColor];
@@ -94,6 +94,48 @@
     [self.layer addSublayer:_waveformSuperlayer];
 }
 
+- (NSUInteger)_prepareLayers:(CGFloat)pixelRatio {
+    NSUInteger numberOfLayers = (NSUInteger)ceil(pixelRatio * self.bounds.size.width) + 1;
+    int numbersOfChannels = _cache.actualNumberOfChannels;
+    
+    while (numbersOfChannels != _waveforms.count) {
+        if (numbersOfChannels < _waveforms.count) {
+            NSArray *waveformLayers = [_waveforms lastObject];
+            [_waveforms removeLastObject];
+            
+            for (SCWaveformLayer *layer in waveformLayers) {
+                [layer removeFromSuperlayer];
+            }
+        } else {
+            [_waveforms addObject:[NSMutableArray new]];
+        }
+    }
+    
+    for (int i = 0; i < numbersOfChannels; i++) {
+        NSMutableArray *waveformLayers = [_waveforms objectAtIndex:i];
+        
+        while (waveformLayers.count < numberOfLayers) {
+            SCWaveformLayer *layer = [SCWaveformLayer new];
+            layer.anchorPoint = CGPointMake(0, 0);
+            layer.delegate = _waveformLayersDelegate;
+            
+            [_waveformSuperlayer addSublayer:layer];
+            
+            [waveformLayers addObject:layer];
+        }
+        
+        while (waveformLayers.count > numberOfLayers) {
+            CALayer *layer = [waveformLayers lastObject];
+            [waveformLayers removeLastObject];
+            
+            [layer removeFromSuperlayer];
+        }
+        
+    }
+
+    return numberOfLayers;
+}
+
 - (void)layoutSubviews {
     [super layoutSubviews];
     
@@ -104,25 +146,7 @@
     
     NSError *error = nil;
     if ([_cache readTimeRange:_timeRange width:size.width error:&error]) {
-        NSUInteger numberOfLayers = (NSUInteger)ceil(pixelRatio * self.bounds.size.width) + 1;
-        
-        while (_waveformLayers.count < numberOfLayers) {
-            SCWaveformLayer *layer = [SCWaveformLayer new];
-            layer.anchorPoint = CGPointMake(0, 0);
-            layer.delegate = _waveformLayersDelegate;
-            
-            [_waveformSuperlayer addSublayer:layer];
-            
-            [_waveformLayers addObject:layer];
-        }
-        
-        while (_waveformLayers.count > numberOfLayers) {
-            CALayer *layer = [_waveformLayers lastObject];
-            [_waveformLayers removeLastObject];
-            
-            [layer removeFromSuperlayer];
-        }
-        
+        NSUInteger numberOfLayersPerChannel = [self _prepareLayers:pixelRatio];
         CGRect waveformSuperlayerFrame = _waveformSuperlayer.frame;
         waveformSuperlayerFrame.origin.y = 0;
         
@@ -136,28 +160,32 @@
         double startRatio = CMTimeGetSeconds(_timeRange.start) / CMTimeGetSeconds(timePerPixel);
         int newFirstVisibleIdx = floor(startRatio);
         waveformSuperlayerFrame.origin.x = -startRatio / pixelRatio;
-        NSRange dirtyRange = NSMakeRange(0, _waveformLayers.count);
+        NSRange dirtyRange = NSMakeRange(0, numberOfLayersPerChannel);
         
         if (!_graphDirty) {
             int offset = newFirstVisibleIdx - _firstVisibleIdx;
             int absOffset = abs(offset);
             
-            if (absOffset < _waveformLayers.count / 2) {
+            if (absOffset < numberOfLayersPerChannel / 2) {
                 dirtyRange.length = absOffset;
                 
                 if (offset > 0) {
-                    dirtyRange.location = _waveformLayers.count - offset;
+                    dirtyRange.location = numberOfLayersPerChannel - offset;
                     for (int i = 0; i < offset; i++) {
-                        SCWaveformLayer *layer = [_waveformLayers objectAtIndex:0];
-                        [_waveformLayers removeObjectAtIndex:0];
-                        [_waveformLayers addObject:layer];
+                        for (NSMutableArray *waveformLayers in _waveforms) {
+                            SCWaveformLayer *layer = [waveformLayers objectAtIndex:0];
+                            [waveformLayers removeObjectAtIndex:0];
+                            [waveformLayers addObject:layer];
+                        }
                     }
                 } else if (offset < 0) {
                     dirtyRange.location = 0;
                     for (int i = offset; i < 0; i++) {
-                        SCWaveformLayer *layer = [_waveformLayers lastObject];
-                        [_waveformLayers removeLastObject];
-                        [_waveformLayers insertObject:layer atIndex:0];
+                        for (NSMutableArray *waveformLayers in _waveforms) {
+                            SCWaveformLayer *layer = [waveformLayers lastObject];
+                            [waveformLayers removeLastObject];
+                            [waveformLayers insertObject:layer atIndex:0];
+                        }
                     }
                 }
             }
@@ -171,20 +199,18 @@
         
         CGColorRef normalColor = _normalColor.CGColor;
         CGColorRef progressColor = _progressColor.CGColor;
-        __block BOOL reachedProgressPoint = NO;
-        CGFloat halfGraphHeight = size.height / 2;
+        int numberOfChannels = _waveforms.count;
+        CGFloat heightPerChannel = size.height / numberOfChannels;
+        CGFloat halfHeightPerChannel = heightPerChannel / 2;
         CGFloat bandWidth = 1 / pixelRatio;
         CGFloat pointSize = 1.0 / scale / 2;
         CMTime assetDuration = [_cache actualAssetDuration];
         //    NSLog(@"Computing bands %d to %d with duration %fs", dirtyRange.location, dirtyRange.location + dirtyRange.length, CMTimeGetSeconds(_timeRange.duration));
         
+        
         [_cache readRange:dirtyRange atTime:_timeRange.start handler:^(int channel, int idx, float sample, CMTime time) {
-            if (idx < _waveformLayers.count) {
-                if (!reachedProgressPoint && CMTIME_COMPARE_INLINE(time, >=, self.progressTime)) {
-                    reachedProgressPoint = YES;
-                }
-                
-                float pixelHeight = halfGraphHeight * (1 - sample / noiseFloor);
+            if (idx < numberOfLayersPerChannel && channel < numberOfChannels) {
+                float pixelHeight = halfHeightPerChannel * (1 - sample / noiseFloor);
                 
                 if (pixelHeight < pointSize) {
                     if (CMTIME_COMPARE_INLINE(time, <, kCMTimeZero) || CMTIME_COMPARE_INLINE(time, >=, assetDuration)) {
@@ -194,10 +220,11 @@
                     }
                 }
                 
-                SCWaveformLayer *layer = [_waveformLayers objectAtIndex:idx];
+                SCWaveformLayer *layer = [[_waveforms objectAtIndex:channel] objectAtIndex:idx];
+                
                 CGColorRef destColor = nil;
                 
-                if (reachedProgressPoint) {
+                if (CMTIME_COMPARE_INLINE(time, >=, _progressTime)) {
                     destColor = normalColor;
                 } else {
                     destColor = progressColor;
@@ -207,8 +234,8 @@
                     layer.backgroundColor = destColor;
                 }
                 
-                layer.frame = CGRectMake((newFirstVisibleIdx + idx) * bandWidth, halfGraphHeight - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
-                
+                layer.frame = CGRectMake((newFirstVisibleIdx + idx) * bandWidth, heightPerChannel * channel + halfHeightPerChannel - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
+                                
                 layer.waveformTime = time;
             }
         }];
@@ -259,21 +286,23 @@
     CGColorRef destColor = progressColor;
     CGFloat pixelRatio = [UIScreen mainScreen].scale * _precision;
     
-    for (SCWaveformLayer *layer in _waveformLayers) {
-        if (updateColor) {
-            if (destColor != normalColor && CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
-                destColor = normalColor;
+    for (NSArray *layers in _waveforms) {
+        for (SCWaveformLayer *layer in layers) {
+            if (updateColor) {
+                if (destColor != normalColor && CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
+                    destColor = normalColor;
+                }
+                
+                if (layer.backgroundColor != destColor) {
+                    layer.backgroundColor = destColor;
+                }
             }
             
-            if (layer.backgroundColor != destColor) {
-                layer.backgroundColor = destColor;
-            }
-        }
-        
-        if (lineWidth) {
-            CGRect bounds = layer.bounds;
-            bounds.size.width = _lineWidthRatio / pixelRatio;
-            layer.bounds = bounds;
+            if (lineWidth) {
+                CGRect bounds = layer.bounds;
+                bounds.size.width = _lineWidthRatio / pixelRatio;
+                layer.bounds = bounds;
+            }            
         }
     }
 }
@@ -357,24 +386,28 @@
     return _cache.actualAssetDuration;
 }
 
-- (NSUInteger)maxChannels {
-    return _cache.maxChannels;
-}
-
-- (void)setMaxChannels:(NSUInteger)maxChannels {
-    _cache.maxChannels = maxChannels;
-    
-    _graphDirty = YES;
-    
-    [self setNeedsLayout];
-}
-
 - (void)setChannelStartIndex:(NSUInteger)channelStartIndex {
-    _channelStartIndex = channelStartIndex;
-    
-    _graphDirty = YES;
-    
-    [self setNeedsLayout];
+    if (channelStartIndex != _channelStartIndex) {
+        _channelStartIndex = channelStartIndex;
+        
+        _graphDirty = YES;
+        
+        [self setNeedsLayout];
+    }
+}
+
+- (NSUInteger)channelEndIndex {
+    return _cache.maxChannels - 1;
+}
+
+- (void)setChannelEndIndex:(NSUInteger)channelEndIndex {
+    if ([self channelEndIndex] != channelEndIndex) {
+        _cache.maxChannels = channelEndIndex + 1;
+        
+        _graphDirty = YES;
+        
+        [self setNeedsLayout];
+    }
 }
 
 @end

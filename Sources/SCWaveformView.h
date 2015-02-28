@@ -30,11 +30,11 @@
 @property (assign, nonatomic) NSUInteger channelStartIndex;
 
 /**
- The max number of channels to render. You can set that to 2
+ The last audio channel index to render. You can set that to 1
  to render a stereo waveform.
- Default is 1.
+ Default is 0.
  */
-@property (assign, nonatomic) NSUInteger maxChannels;
+@property (assign, nonatomic) NSUInteger channelEndIndex;
 
 @property (readonly, nonatomic) CGSize waveformSize;
 
