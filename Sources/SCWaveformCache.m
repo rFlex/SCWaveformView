@@ -121,7 +121,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
     }
     
     if (channelCount > _maxChannels) {
-        channelCount = _maxChannels;
+        channelCount = (int)_maxChannels;
     }
     
     timeRange.duration = CMTimeConvertScale(timeRange.duration, sampleRate, kCMTimeRoundingMethod_Default);

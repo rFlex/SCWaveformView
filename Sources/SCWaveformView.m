@@ -93,7 +93,7 @@
 
 - (NSUInteger)_prepareLayers:(CGFloat)pixelRatio {
     NSUInteger numberOfLayers = (NSUInteger)ceil(pixelRatio * self.bounds.size.width) + 1;
-    int numbersOfChannels = _cache.actualNumberOfChannels;
+    int numbersOfChannels = (int)_cache.actualNumberOfChannels;
     
     while (numbersOfChannels != _waveforms.count) {
         if (numbersOfChannels < _waveforms.count) {
@@ -196,7 +196,7 @@
         
         CGColorRef normalColor = _normalColor.CGColor;
         CGColorRef progressColor = _progressColor.CGColor;
-        int numberOfChannels = _waveforms.count;
+        int numberOfChannels = (int)_waveforms.count;
         CGFloat heightPerChannel = (size.height - _channelsPadding * (numberOfChannels - 1)) / numberOfChannels;
         CGFloat halfHeightPerChannel = heightPerChannel / 2;
         CGFloat bandWidth = 1 / pixelRatio;
