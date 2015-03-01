@@ -25,6 +25,7 @@
     self.scrollableWaveformView.waveformView.precision = 1;
     self.scrollableWaveformView.waveformView.lineWidthRatio = 1;
     self.scrollableWaveformView.waveformView.normalColor = [UIColor colorWithRed:0.8 green:0.3 blue:0.3 alpha:1];
+    self.scrollableWaveformView.waveformView.channelsPadding = 10;
     self.scrollableWaveformView.waveformView.progressColor = [UIColor colorWithRed:1 green:0.2 blue:0.2 alpha:1];
     AVURLAsset *asset = [[AVURLAsset alloc] initWithURL:[[NSBundle mainBundle] URLForResource:@"test" withExtension:@"m4a"] options:nil];
     
@@ -87,6 +88,7 @@
 }
 - (IBAction)stereoSwitchChanged:(UISwitch *)sender {
     self.scrollableWaveformView.waveformView.channelEndIndex = sender.on ? 1 : 0;
+//    self.scrollableWaveformView.waveformView.channelStartIndex = sender.on ? 1 : 0;
 }
 
 - (IBAction)sliderProgressChanged:(UISlider*)sender

@@ -9,10 +9,7 @@
 #import "SCWaveformView.h"
 #import "SCWaveformCache.h"
 
-#define absX(x) (x < 0 ? 0 - x : x)
-#define minMaxX(x, mn, mx) (x <= mn ? mn : (x >= mx ? mx : x))
 #define noiseFloor (-50.0)
-#define decibel(amplitude) (20.0 * log10(absX(amplitude) / 32767.0))
 
 @interface SCWaveformLayer : CALayer
 
@@ -200,13 +197,11 @@
         CGColorRef normalColor = _normalColor.CGColor;
         CGColorRef progressColor = _progressColor.CGColor;
         int numberOfChannels = _waveforms.count;
-        CGFloat heightPerChannel = size.height / numberOfChannels;
+        CGFloat heightPerChannel = (size.height - _channelsPadding * (numberOfChannels - 1)) / numberOfChannels;
         CGFloat halfHeightPerChannel = heightPerChannel / 2;
         CGFloat bandWidth = 1 / pixelRatio;
         CGFloat pointSize = 1.0 / scale / 2;
         CMTime assetDuration = [_cache actualAssetDuration];
-        //    NSLog(@"Computing bands %d to %d with duration %fs", dirtyRange.location, dirtyRange.location + dirtyRange.length, CMTimeGetSeconds(_timeRange.duration));
-        
         
         [_cache readRange:dirtyRange atTime:_timeRange.start handler:^(int channel, int idx, float sample, CMTime time) {
             if (idx < numberOfLayersPerChannel && channel < numberOfChannels) {
@@ -234,7 +229,8 @@
                     layer.backgroundColor = destColor;
                 }
                 
-                layer.frame = CGRectMake((newFirstVisibleIdx + idx) * bandWidth, heightPerChannel * channel + halfHeightPerChannel - pixelHeight, _lineWidthRatio / pixelRatio, pixelHeight * 2);
+                layer.frame = CGRectMake((newFirstVisibleIdx + idx) * bandWidth, _channelsPadding * channel + heightPerChannel * channel + halfHeightPerChannel - pixelHeight,
+                                         _lineWidthRatio / pixelRatio, pixelHeight * 2);
                                 
                 layer.waveformTime = time;
             }
@@ -283,13 +279,13 @@
 - (void)_updateLayersColor:(BOOL)updateColor lineWidth:(BOOL)lineWidth {
     CGColorRef normalColor = _normalColor.CGColor;
     CGColorRef progressColor = _progressColor.CGColor;
-    CGColorRef destColor = progressColor;
     CGFloat pixelRatio = [UIScreen mainScreen].scale * _precision;
     
     for (NSArray *layers in _waveforms) {
         for (SCWaveformLayer *layer in layers) {
             if (updateColor) {
-                if (destColor != normalColor && CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
+                CGColorRef destColor = progressColor;
+                if (CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
                     destColor = normalColor;
                 }
                 
@@ -323,13 +319,17 @@
     return _cache.asset;
 }
 
+- (void)_makeDirty {
+    _graphDirty = YES;
+    
+    [self setNeedsLayout];
+}
+
 - (void)setAsset:(AVAsset *)asset {
     [self willChangeValueForKey:@"asset"];
     
     _cache.asset = asset;
-    _graphDirty = YES;
-
-    [self setNeedsLayout];
+    [self _makeDirty];
     
     [self didChangeValueForKey:@"asset"];
 }
@@ -390,9 +390,7 @@
     if (channelStartIndex != _channelStartIndex) {
         _channelStartIndex = channelStartIndex;
         
-        _graphDirty = YES;
-        
-        [self setNeedsLayout];
+        [self _makeDirty];
     }
 }
 
@@ -404,9 +402,16 @@
     if ([self channelEndIndex] != channelEndIndex) {
         _cache.maxChannels = channelEndIndex + 1;
         
-        _graphDirty = YES;
+        [self _makeDirty];
+    }
+}
+
+- (void)setChannelsPadding:(CGFloat)channelsPadding {
+    if (_channelsPadding != channelsPadding) {
+        _channelsPadding = channelsPadding;
         
-        [self setNeedsLayout];
+        [self _makeDirty];
+
     }
 }
 

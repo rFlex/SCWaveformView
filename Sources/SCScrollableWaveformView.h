@@ -13,6 +13,9 @@
 
 @interface SCScrollableWaveformView : UIScrollView
 
+/**
+ The managed waveformView.
+ */
 @property (readonly, nonatomic) SCWaveformView *waveformView;
 
 @end

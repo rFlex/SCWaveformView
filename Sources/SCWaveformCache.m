@@ -7,10 +7,6 @@
 //
 
 #import "SCWaveformCache.h"
-#define absX(x) (x < 0 ? 0 - x : x)
-#define minMaxX(x, mn, mx) (x <= mn ? mn : (x >= mx ? mx : x))
-#define noiseFloor (-50.0)
-#define decibel(amplitude) (20.0 * log10(absX(amplitude)))
 
 @interface SCWaveformCache() {
     NSUInteger _samplesPerPixel;
@@ -36,7 +32,6 @@
 }
 
 - (void)invalidate {
-//    NSLog(@"-- INVALIDATING CACHE --");
     _samplesPerPixel = 0;
     _cachedStartTime = kCMTimeInvalid;
     _channelsCachedData = [NSMutableArray new];
@@ -239,18 +234,18 @@
         double *bigSamples = malloc(sizeof(double) * channelCount);
         memset(bigSamples, 0, sizeof(double) * channelCount);
         
-        CFTimeInterval start = CACurrentMediaTime();
-        CFTimeInterval timeTakenCopy = 0;
-        CFTimeInterval timeTakenProcessing = 0;
+//        CFTimeInterval start = CACurrentMediaTime();
+//        CFTimeInterval timeTakenCopy = 0;
+//        CFTimeInterval timeTakenProcessing = 0;
         
         while (reader.status == AVAssetReaderStatusReading) {
             
-            CFTimeInterval copy = CACurrentMediaTime();
+//            CFTimeInterval copy = CACurrentMediaTime();
             CMSampleBufferRef sampleBufferRef = [output copyNextSampleBuffer];
-            timeTakenCopy += (CACurrentMediaTime() - copy);
+//            timeTakenCopy += (CACurrentMediaTime() - copy);
             
             if (sampleBufferRef) {
-                copy = CACurrentMediaTime();
+//                copy = CACurrentMediaTime();
                 
                 CMBlockBufferRef blockBufferRef = CMSampleBufferGetDataBuffer(sampleBufferRef);
                 CMTime time = CMSampleBufferGetPresentationTimeStamp(sampleBufferRef);
@@ -263,19 +258,19 @@
                 Float32 *samples = (Float32 *)dataPointer;
                 int sampleCount = (int)(bufferLength / sizeof(Float32));
                 int currentChannel = 0;
+                Float32 sample = 0;
                 
                 for (int i = 0; i < sampleCount; i++) {
-                    Float32 sample = *samples++;
-                    sample = decibel(sample);
-                    sample = minMaxX(sample, noiseFloor, 0);
+                    sample = *samples;
+                    
                     BOOL isLastChannel = currentChannel + 1 == channelCount;
-                    
-//                    for (int j = 1; j < channelCount; j++) {
-//                        samples++;
-//                    }
-                    
+
                     if (reachedStart || CMTIME_COMPARE_INLINE(time, >=, timeRange.start)) {
                         reachedStart = YES;
+                        
+                        if (sample < 0) {
+                            sample = -sample;
+                        }
                         
                         if (CMTIME_IS_INVALID(beginTime)) {
                             beginTime = time;
@@ -290,10 +285,7 @@
                         }
                        
                         if (bigSampleCount == samplesPerPixel) {
-                            float averageSample = (float)(bigSamples[currentChannel] / (double)bigSampleCount);
-                            
-//                            averageSample = decibel(averageSample);
-//                            averageSample = minMaxX(averageSample, noiseFloor, 0);
+                            float averageSample = 20.0 * log10(bigSamples[currentChannel] / (double)bigSampleCount);
                             
                             bigSamples[currentChannel] = 0;
                             
@@ -315,11 +307,12 @@
                         time.value++;
                     }
                     
+                    samples++;
                     currentChannel = (currentChannel + 1) % channelCount;
                 }
                 CFRelease(sampleBufferRef);
                 
-                timeTakenProcessing += (CACurrentMediaTime() - copy);
+//                timeTakenProcessing += (CACurrentMediaTime() - copy);
             }
         }
         
@@ -349,7 +342,7 @@
             }
         }
 
-        NSLog(@"Read file in %fs (copy: %fs, processing: %fs)", (float)(CACurrentMediaTime() - start), (float)timeTakenCopy, (float)timeTakenProcessing);
+//        NSLog(@"Read file in %fs (copy: %fs, processing: %fs)", (float)(CACurrentMediaTime() - start), (float)timeTakenCopy, (float)timeTakenProcessing);
         
         if (shouldSetStartTime) {
             if (CMTIME_IS_VALID(beginTime)) {
