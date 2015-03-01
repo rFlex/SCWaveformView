@@ -79,6 +79,10 @@
     return CMTimeMultiply(_timePerPixel, (int)(cachedData.length / sizeof(float)));
 }
 
+static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
+    return 20.0 * log10(sample / (double)sampleCount);
+}
+
 - (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError *__autoreleasing *)error {
     if (self.asset == nil) {
         return NO;
@@ -219,7 +223,7 @@
         
         [reader startReading];
         
-        NSUInteger bigSampleCount = 0;
+        NSUInteger addedSampleCount = 0;
         NSMutableArray *channelsData = [NSMutableArray new];
         
         for (int i = 0; i < channelCount; i++) {
@@ -231,8 +235,8 @@
         NSUInteger maxDataLength = sizeof(float) * ceil(CMTimeGetSeconds(timeRange.duration) / CMTimeGetSeconds(_timePerPixel));
         BOOL reachedStart = NO;
         
-        double *bigSamples = malloc(sizeof(double) * channelCount);
-        memset(bigSamples, 0, sizeof(double) * channelCount);
+        double *addedSamples = malloc(sizeof(double) * channelCount);
+        memset(addedSamples, 0, sizeof(double) * channelCount);
         
 //        CFTimeInterval start = CACurrentMediaTime();
 //        CFTimeInterval timeTakenCopy = 0;
@@ -278,19 +282,19 @@
                         
                         sampleRead++;
                         
-                        bigSamples[currentChannel] += sample;
+                        addedSamples[currentChannel] += sample;
                         
                         if (currentChannel == 0) {
-                            bigSampleCount++;
+                            addedSampleCount++;
                         }
                        
-                        if (bigSampleCount == samplesPerPixel) {
-                            float averageSample = 20.0 * log10(bigSamples[currentChannel] / (double)bigSampleCount);
+                        if (addedSampleCount == samplesPerPixel) {
+                            float averageSample = SCDecibelAverage(addedSamples[currentChannel], addedSampleCount);
                             
-                            bigSamples[currentChannel] = 0;
+                            addedSamples[currentChannel] = 0;
                             
                             if (isLastChannel) {
-                                bigSampleCount = 0;
+                                addedSampleCount = 0;
                             }
                             
                             NSMutableData *data = [channelsData objectAtIndex:currentChannel];
@@ -316,16 +320,16 @@
             }
         }
         
-        if (bigSampleCount != 0 && isLastSegment) {
+        if (addedSampleCount != 0 && isLastSegment) {
             for (int i = 0; i < channelCount; i++) {
-                float averageSample = (float)(bigSamples[i] / (double)bigSampleCount);
+                float averageSample = SCDecibelAverage(addedSamples[i], addedSampleCount);
                 NSMutableData *data = [channelsData objectAtIndex:i];
 
                 [data appendBytes:&averageSample length:sizeof(float)];
             }
         }
         
-        free(bigSamples);
+        free(addedSamples);
         
 //        NSLog(@"Read %lld samples and generated %d cache entries (timePerPixel: %fs, samplesPerPixel: %d)", sampleRead, (int)(data.length / sizeof(float)), CMTimeGetSeconds(_timePerPixel), (int)samplesPerPixel);
 //        NSLog(@"Duration requested: %fs, actual got: %fs", CMTimeGetSeconds(timeRange.duration), CMTimeGetSeconds(CMTimeMultiply(_timePerPixel, (int)(data.length / sizeof(float)))));
