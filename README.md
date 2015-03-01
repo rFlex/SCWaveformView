@@ -29,41 +29,42 @@ If you are using cocoapods, you can use this project with the following Podfile
 Example
 -------
 
-     // Allocating the waveformview
-     SCWaveformView *waveformView = [[SCWaveformView alloc] init];
-     
-     // Setting the asset
-     AVAsset *asset = [AVURLAsset URLAssetWithURL:[NSURL URLWithString:@"blabla.mp3"]];
-     waveformView.asset = asset;
-     
-     // Setting the waveform colors
-     waveformView.normalColor = [UIColor greenColor];
-     waveformView.progressColor = [UIColor redColor];
-     
-     // Set the play progress
-     waveformView.progressTime = CMTimeMakeWithSeconds(5, 10000);
-     
-     // Show only the first second of your asset
-     waveformView.timeRange = CMTimeRangeMake(kCMTimeZero, CMTimeMakeWithSeconds(1, 1));
-     
-     // Use it inside a scrollView
-     SCScrollableWaveformView *scrollableWaveformView = [SCScrollableWaveformView new];
-     scrollableWaveformView.waveformView; // Access the waveformView from there
-     
-     // Set the precision, 1 being the maximum
-     waveformView.precision = 0.25; // We are going to render one line per four pixels
-     
-     // Set the lineWidth so we have some space between the lines
-     waveformView.lineWidthRatio = 0.5;
-     
-     // Show stereo if available
-     waveformView.channelStartIndex = 0;
-     waveformView.channelEndIndex = 1;
-     
-     // Show only right channel
-     waveformView.channelStartIndex = 1;
-     waveformView.channelEndIndex = 1;
-     
-     // Add some padding between the channels
-     waveformView.channelsPadding = 10;
+```objective-c
+// Allocating the waveformview
+SCWaveformView *waveformView = [[SCWaveformView alloc] init];
 
+// Setting the asset
+AVAsset *asset = [AVURLAsset URLAssetWithURL:[NSURL URLWithString:@"blabla.mp3"]];
+waveformView.asset = asset;
+
+// Setting the waveform colors
+waveformView.normalColor = [UIColor greenColor];
+waveformView.progressColor = [UIColor redColor];
+
+// Set the play progress
+waveformView.progressTime = CMTimeMakeWithSeconds(5, 10000);
+
+// Show only the first second of your asset
+waveformView.timeRange = CMTimeRangeMake(kCMTimeZero, CMTimeMakeWithSeconds(1, 1));
+
+// Use it inside a scrollView
+SCScrollableWaveformView *scrollableWaveformView = [SCScrollableWaveformView new];
+scrollableWaveformView.waveformView; // Access the waveformView from there
+
+// Set the precision, 1 being the maximum
+waveformView.precision = 0.25; // We are going to render one line per four pixels
+
+// Set the lineWidth so we have some space between the lines
+waveformView.lineWidthRatio = 0.5;
+
+// Show stereo if available
+waveformView.channelStartIndex = 0;
+waveformView.channelEndIndex = 1;
+
+// Show only right channel
+waveformView.channelStartIndex = 1;
+waveformView.channelEndIndex = 1;
+
+// Add some padding between the channels
+waveformView.channelsPadding = 10;
+```
