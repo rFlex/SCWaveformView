@@ -16,8 +16,6 @@ Main features:
   * Custom LineWidth so you can have a unique waveform design.
   * Support mono and stereo (dual waveforms).
 
-This project is inspired from https://github.com/fulldecent/FDWaveformView
-
 Podfile
 ----------------
 
