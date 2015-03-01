@@ -3,19 +3,18 @@ SCWaveformView
 
 A blazing fast customizable waveform view. Extract the audio section of an asset (which can be both video or audio) and display a waveform.
 
+<img src="waveform.gif">
+
 The SCWaveformView is optimized to do the less file read possible. When scrolling or displaying another part of the waveform, it will only read whatever it needs to render the new section. It will cache the file data to avoid having to read sections that have been already computed. Furthermore, if it does have to read the file, it will read it by bigger segment to minimize the number of read operations next time the timeRange changes.
 
 Main features:
   * Can show a play progress.
   * Colors are changeable at runtime without reprocessing the asset.
   * Doesn't have to read the whole file if you display only a portion of your audio on screen.
-  * Features a scrollable waveform view..
-  * Can set a precision to make the drawing faster on some devices
-  * LineWidth is changeable so you can have a unique waveform design
-  * Set the asset, then you are good to go.
-  * ARC.
-
-<img src="http://i.imgur.com/dVGhYBk.png" width=500>
+  * Scrollable.
+  * Can set a precision to make the drawing faster on some devices.
+  * Custom LineWidth so you can have a unique waveform design.
+  * Support mono and stereo (dual waveforms).
 
 This project is inspired from https://github.com/fulldecent/FDWaveformView
 
@@ -57,3 +56,14 @@ Example
      // Set the lineWidth so we have some space between the lines
      waveformView.lineWidthRatio = 0.5;
      
+     // Show stereo if available
+     waveformView.channelStartIndex = 0;
+     waveformView.channelEndIndex = 1;
+     
+     // Show only right channel
+     waveformView.channelStartIndex = 1;
+     waveformView.channelEndIndex = 1;
+     
+     // Add some padding between the channels
+     waveformView.channelsPadding = 10;
+
