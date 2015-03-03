@@ -63,7 +63,7 @@ static char *ScrollableWaveformContentOffsetContext = "ScrollableWaveformContent
         CGFloat ratio = self.contentOffset.x / self.contentSize.width;
         CMTime newStart = CMTimeMakeWithSeconds(
                                                 CMTimeGetSeconds(actualAssetTime) * ratio,
-                                                _waveformView.timeRange.start.timescale);
+                                                100000);
         
         if (CMTIME_COMPARE_INLINE(newStart, !=, _waveformView.timeRange.start)) {
 //            NSLog(@"Updating timeRange to %fs", CMTimeGetSeconds(newStart));
@@ -76,11 +76,11 @@ static char *ScrollableWaveformContentOffsetContext = "ScrollableWaveformContent
 static BOOL SCApproximateEquals(CGFloat x, CGFloat y, CGFloat x2, CGFloat y2) {
     CGFloat ratio = [UIScreen mainScreen].scale;
     
-    if ((int)(round(x * ratio)) != (int)(round(x2 * ratio))) {
+    if ((int)(x * ratio) != (int)(x2 * ratio)) {
         return NO;
     }
-
-    if ((int)(round(y * ratio)) != (int)(round(y2 * ratio))) {
+    
+    if ((int)(y * ratio) != (int)(y2 * ratio)) {
         return NO;
     }
     
