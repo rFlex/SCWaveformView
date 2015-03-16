@@ -135,7 +135,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
     timeRange.start.value = timeRange.start.value - timeRange.start.value % samplesPerPixel;
     timeRange.duration.value = timeRange.duration.value - timeRange.duration.value % samplesPerPixel;
     
-    _timePerPixel = CMTimeMultiplyByRatio(timeRange.duration, 1, width);
+    _timePerPixel = CMTimeMultiplyByFloat64(timeRange.duration, 1 / width);
     
     CMTime cacheDuration = [self cacheDuration];
     CMTime cacheEndTime = CMTimeAdd(_cachedStartTime, cacheDuration);
@@ -243,7 +243,6 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
 //        CFTimeInterval timeTakenProcessing = 0;
         
         while (reader.status == AVAssetReaderStatusReading) {
-            
 //            CFTimeInterval copy = CACurrentMediaTime();
             CMSampleBufferRef sampleBufferRef = [output copyNextSampleBuffer];
 //            timeTakenCopy += (CACurrentMediaTime() - copy);

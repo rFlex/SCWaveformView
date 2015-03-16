@@ -76,6 +76,7 @@
     _progressTime = kCMTimeZero;
     
     _cache = [SCWaveformCache new];
+    _cache.delegate = self;
     _waveforms = [NSMutableArray new];
     _graphDirty = YES;
     
@@ -89,6 +90,12 @@
     _waveformSuperlayer.delegate = _waveformLayersDelegate;
     
     [self.layer addSublayer:_waveformSuperlayer];
+}
+
+- (void)waveformCache:(SCWaveformCache *)waveformCache didLoadRange:(NSRange)range atTime:(CMTime)time {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self setNeedsLayout];
+    });
 }
 
 - (NSUInteger)_prepareLayers:(CGFloat)pixelRatio {
@@ -153,7 +160,7 @@
         }
         
         
-        CMTime timePerPixel = CMTimeMultiplyByRatio(_timeRange.duration, 1, size.width);
+        CMTime timePerPixel = CMTimeMultiplyByFloat64(_timeRange.duration, 1 / size.width);
         double startRatio = CMTimeGetSeconds(_timeRange.start) / CMTimeGetSeconds(timePerPixel);
         int newFirstVisibleIdx = floor(startRatio);
         waveformSuperlayerFrame.origin.x = -startRatio / pixelRatio;

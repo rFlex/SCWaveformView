@@ -9,6 +9,14 @@
 #import <AVFoundation/AVFoundation.h>
 #import <Foundation/Foundation.h>
 
+@class SCWaveformCache;
+
+@protocol SCWaveformCacheDelegate <NSObject>
+
+- (void)waveformCache:(SCWaveformCache *)waveformCache didLoadRange:(NSRange)range atTime:(CMTime)time;
+
+@end
+
 @interface SCWaveformCache : NSObject
 
 @property (strong, nonatomic) AVAsset *asset;
@@ -20,6 +28,8 @@
 @property (readonly, nonatomic) NSUInteger actualNumberOfChannels;
 
 @property (assign, nonatomic) NSUInteger maxChannels;
+
+@property (weak, nonatomic) id<SCWaveformCacheDelegate> delegate;
 
 typedef void (^SCAudioBufferHandler)(int channel, int x, float sample, CMTime time);
 
