@@ -18,23 +18,10 @@
 		DC2C7A461892A0770085043D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DC2C7A441892A0770085043D /* Main.storyboard */; };
 		DC2C7A491892A0770085043D /* SCViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = DC2C7A481892A0770085043D /* SCViewController.m */; };
 		DC2C7A4B1892A0770085043D /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DC2C7A4A1892A0770085043D /* Images.xcassets */; };
-		DC2C7A521892A0770085043D /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC2C7A511892A0770085043D /* XCTest.framework */; };
-		DC2C7A531892A0770085043D /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC2C7A321892A0770085043D /* Foundation.framework */; };
-		DC2C7A541892A0770085043D /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC2C7A361892A0770085043D /* UIKit.framework */; };
 		DC2C7A691892A0AD0085043D /* SCWaveformView.m in Sources */ = {isa = PBXBuildFile; fileRef = DC2C7A681892A0AD0085043D /* SCWaveformView.m */; };
 		DC2C7A6C1892A84F0085043D /* test.m4a in Resources */ = {isa = PBXBuildFile; fileRef = DC2C7A6B1892A84F0085043D /* test.m4a */; };
 		DCC79A2C1896983100CECFE7 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DCC79A2B1896983000CECFE7 /* QuartzCore.framework */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		DC2C7A551892A0770085043D /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = DC2C7A271892A0770085043D /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = DC2C7A2E1892A0770085043D;
-			remoteInfo = SCWaveformView;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		DC27B75C1A9D0C80003DA2CB /* SCScrollableWaveformView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SCScrollableWaveformView.h; sourceTree = "<group>"; };
@@ -55,7 +42,6 @@
 		DC2C7A471892A0770085043D /* SCViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SCViewController.h; sourceTree = "<group>"; };
 		DC2C7A481892A0770085043D /* SCViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SCViewController.m; sourceTree = "<group>"; };
 		DC2C7A4A1892A0770085043D /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
-		DC2C7A501892A0770085043D /* SCWaveformViewTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SCWaveformViewTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC2C7A511892A0770085043D /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		DC2C7A671892A0AD0085043D /* SCWaveformView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SCWaveformView.h; sourceTree = "<group>"; };
 		DC2C7A681892A0AD0085043D /* SCWaveformView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SCWaveformView.m; sourceTree = "<group>"; };
@@ -72,16 +58,6 @@
 				DC2C7A351892A0770085043D /* CoreGraphics.framework in Frameworks */,
 				DC2C7A371892A0770085043D /* UIKit.framework in Frameworks */,
 				DC2C7A331892A0770085043D /* Foundation.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		DC2C7A4D1892A0770085043D /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				DC2C7A521892A0770085043D /* XCTest.framework in Frameworks */,
-				DC2C7A541892A0770085043D /* UIKit.framework in Frameworks */,
-				DC2C7A531892A0770085043D /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -102,7 +78,6 @@
 			isa = PBXGroup;
 			children = (
 				DC2C7A2F1892A0770085043D /* SCWaveformView.app */,
-				DC2C7A501892A0770085043D /* SCWaveformViewTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -170,24 +145,6 @@
 			productReference = DC2C7A2F1892A0770085043D /* SCWaveformView.app */;
 			productType = "com.apple.product-type.application";
 		};
-		DC2C7A4F1892A0770085043D /* SCWaveformViewTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = DC2C7A641892A0770085043D /* Build configuration list for PBXNativeTarget "SCWaveformViewTests" */;
-			buildPhases = (
-				DC2C7A4C1892A0770085043D /* Sources */,
-				DC2C7A4D1892A0770085043D /* Frameworks */,
-				DC2C7A4E1892A0770085043D /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				DC2C7A561892A0770085043D /* PBXTargetDependency */,
-			);
-			name = SCWaveformViewTests;
-			productName = SCWaveformViewTests;
-			productReference = DC2C7A501892A0770085043D /* SCWaveformViewTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -197,11 +154,6 @@
 				CLASSPREFIX = SC;
 				LastUpgradeCheck = 0500;
 				ORGANIZATIONNAME = "Simon CORSIN";
-				TargetAttributes = {
-					DC2C7A4F1892A0770085043D = {
-						TestTargetID = DC2C7A2E1892A0770085043D;
-					};
-				};
 			};
 			buildConfigurationList = DC2C7A2A1892A0770085043D /* Build configuration list for PBXProject "SCWaveformView" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -217,7 +169,6 @@
 			projectRoot = "";
 			targets = (
 				DC2C7A2E1892A0770085043D /* SCWaveformView */,
-				DC2C7A4F1892A0770085043D /* SCWaveformViewTests */,
 			);
 		};
 /* End PBXProject section */
@@ -231,13 +182,6 @@
 				DC2C7A4B1892A0770085043D /* Images.xcassets in Resources */,
 				DC2C7A3D1892A0770085043D /* InfoPlist.strings in Resources */,
 				DC2C7A461892A0770085043D /* Main.storyboard in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		DC2C7A4E1892A0770085043D /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -257,22 +201,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DC2C7A4C1892A0770085043D /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		DC2C7A561892A0770085043D /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = DC2C7A2E1892A0770085043D /* SCWaveformView */;
-			targetProxy = DC2C7A551892A0770085043D /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		DC2C7A3B1892A0770085043D /* InfoPlist.strings */ = {
@@ -392,48 +321,6 @@
 			};
 			name = Release;
 		};
-		DC2C7A651892A0770085043D /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
-				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/SCWaveformView.app/SCWaveformView";
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(SDKROOT)/Developer/Library/Frameworks",
-					"$(inherited)",
-					"$(DEVELOPER_FRAMEWORKS_DIR)",
-				);
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SCWaveformView/SCWaveformView-Prefix.pch";
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
-				);
-				INFOPLIST_FILE = "SCWaveformViewTests/SCWaveformViewTests-Info.plist";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				TEST_HOST = "$(BUNDLE_LOADER)";
-				WRAPPER_EXTENSION = xctest;
-			};
-			name = Debug;
-		};
-		DC2C7A661892A0770085043D /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_INCLUDING_64_BIT)";
-				BUNDLE_LOADER = "$(BUILT_PRODUCTS_DIR)/SCWaveformView.app/SCWaveformView";
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(SDKROOT)/Developer/Library/Frameworks",
-					"$(inherited)",
-					"$(DEVELOPER_FRAMEWORKS_DIR)",
-				);
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "SCWaveformView/SCWaveformView-Prefix.pch";
-				INFOPLIST_FILE = "SCWaveformViewTests/SCWaveformViewTests-Info.plist";
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				TEST_HOST = "$(BUNDLE_LOADER)";
-				WRAPPER_EXTENSION = xctest;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -451,15 +338,6 @@
 			buildConfigurations = (
 				DC2C7A621892A0770085043D /* Debug */,
 				DC2C7A631892A0770085043D /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		DC2C7A641892A0770085043D /* Build configuration list for PBXNativeTarget "SCWaveformViewTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				DC2C7A651892A0770085043D /* Debug */,
-				DC2C7A661892A0770085043D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
