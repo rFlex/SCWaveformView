@@ -8,6 +8,7 @@
 
 #import <Foundation/Foundation.h>
 #import <AVFoundation/AVFoundation.h>
+#import <UIKit/UIKit.h>
 #import "SCWaveformCache.h"
 #import "SCScrollableWaveformView.h" // For convenience
 
