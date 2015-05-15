@@ -35,7 +35,7 @@ typedef void (^SCAudioBufferHandler)(int channel, int x, float sample, CMTime ti
 
 - (BOOL)readTimeRange:(CMTimeRange)timeRange width:(CGFloat)width error:(NSError **)error;
 
-- (void)readRange:(NSRange)range atTime:(CMTime)time  handler:(SCAudioBufferHandler)handler;
+- (void)readRange:(NSRange)range atTime:(CMTime)time handler:(SCAudioBufferHandler)handler;
 
 - (void)invalidate;
 
