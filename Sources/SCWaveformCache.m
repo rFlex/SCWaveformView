@@ -393,7 +393,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
         }
 
 #if SCWaveformDebug
-        NSLog(@"Read timeRange %fs to %fs. New cache duration: %fs (end bounds: %fs), asset duration :%fs", CMTimeGetSeconds(timeRange.start), CMTimeGetSeconds(CMTimeAdd(timeRange.start, timeRange.duration)),
+        NSLog(@"Read timeRange %fs to %fs. New cache duration: %fs (end bounds: %fs), asset duration: %fs", CMTimeGetSeconds(timeRange.start), CMTimeGetSeconds(CMTimeAdd(timeRange.start, timeRange.duration)),
               CMTimeGetSeconds([self cacheDuration]), CMTimeGetSeconds(CMTimeAdd(_cachedStartTime, [self cacheDuration])), CMTimeGetSeconds([self actualAssetDuration]));
 #endif
     }
