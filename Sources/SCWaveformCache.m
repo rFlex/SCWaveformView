@@ -135,7 +135,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
     timeRange.duration = CMTimeConvertScale(timeRange.duration, sampleRate, kCMTimeRoundingMethod_Default);
     UInt64 totalSamples = timeRange.duration.value;
     
-    NSUInteger samplesPerPixel = totalSamples / width;
+    NSUInteger samplesPerPixel = roundf((CGFloat)totalSamples / (CGFloat)width);
     samplesPerPixel = samplesPerPixel < 1 ? 1 : samplesPerPixel;
     
     CMTimeRange oldTimeRange = timeRange;
