@@ -113,7 +113,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
     
     AVAssetTrack *songTrack = [audioTrackArray objectAtIndex:0];
     
-    UInt32 channelCount;
+    UInt32 channelCount = 1;
     NSArray *formatDesc = songTrack.formatDescriptions;
     UInt32 sampleRate = 0;
     for (NSUInteger i = 0; i < [formatDesc count]; ++i) {
