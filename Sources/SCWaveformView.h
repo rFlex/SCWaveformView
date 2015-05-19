@@ -12,7 +12,7 @@
 #import "SCWaveformCache.h"
 #import "SCScrollableWaveformView.h" // For convenience
 
-@interface SCWaveformView : UIView<SCWaveformCacheDelegate>
+@interface SCWaveformView : UIView
 
 /**
  The asset to render.

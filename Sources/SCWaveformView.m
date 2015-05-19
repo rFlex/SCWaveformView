@@ -76,7 +76,6 @@
     _progressTime = kCMTimeZero;
     
     _cache = [SCWaveformCache new];
-    _cache.delegate = self;
     _waveforms = [NSMutableArray new];
     _graphDirty = YES;
     
@@ -90,12 +89,6 @@
     _waveformSuperlayer.delegate = _waveformLayersDelegate;
     
     [self.layer addSublayer:_waveformSuperlayer];
-}
-
-- (void)waveformCache:(SCWaveformCache *)waveformCache didLoadRange:(NSRange)range atTime:(CMTime)time {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [self setNeedsLayout];
-    });
 }
 
 - (NSUInteger)_prepareLayers:(CGFloat)pixelRatio {
