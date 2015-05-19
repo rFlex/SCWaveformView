@@ -156,7 +156,6 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
     if (samplesPerPixel != _samplesPerPixel ||
         CMTIME_COMPARE_INLINE(CMTimeAdd(timeRange.start, timeRange.duration), <, _cachedStartTime) || CMTIME_COMPARE_INLINE(timeRange.start, >, cacheEndTime)) {
         [self invalidate];
-        cacheDuration = kCMTimeZero;
         cacheEndTime = kCMTimeInvalid;
     }
     
