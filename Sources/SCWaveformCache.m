@@ -8,6 +8,10 @@
 
 #import "SCWaveformCache.h"
 
+#ifndef SCWaveformDebug
+# define SCWaveformDebug 0
+#endif
+
 @interface SCWaveformCache() {
     NSUInteger _samplesPerPixel;
     CMTime _cachedStartTime;
@@ -32,6 +36,10 @@
 }
 
 - (void)invalidate {
+#if SCWaveformDebug
+    NSLog(@"invalidate waveform cache");
+#endif
+
     _samplesPerPixel = 0;
     _cachedStartTime = kCMTimeInvalid;
     _channelsCachedData = [NSMutableArray new];
@@ -237,18 +245,26 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
         
         double *addedSamples = malloc(sizeof(double) * channelCount);
         memset(addedSamples, 0, sizeof(double) * channelCount);
-        
-//        CFTimeInterval start = CACurrentMediaTime();
-//        CFTimeInterval timeTakenCopy = 0;
-//        CFTimeInterval timeTakenProcessing = 0;
+
+#if SCWaveformDebug
+        CFTimeInterval start = CACurrentMediaTime();
+        CFTimeInterval timeTakenCopy = 0;
+        CFTimeInterval timeTakenProcessing = 0;
+#endif
         
         while (reader.status == AVAssetReaderStatusReading) {
-//            CFTimeInterval copy = CACurrentMediaTime();
+#if SCWaveformDebug
+            CFTimeInterval copy = CACurrentMediaTime();
+#endif
             CMSampleBufferRef sampleBufferRef = [output copyNextSampleBuffer];
-//            timeTakenCopy += (CACurrentMediaTime() - copy);
+#if SCWaveformDebug
+            timeTakenCopy += (CACurrentMediaTime() - copy);
+#endif
             
             if (sampleBufferRef) {
-//                copy = CACurrentMediaTime();
+#if SCWaveformDebug
+                copy = CACurrentMediaTime();
+#endif
                 
                 CMBlockBufferRef blockBufferRef = CMSampleBufferGetDataBuffer(sampleBufferRef);
                 CMTime time = CMSampleBufferGetPresentationTimeStamp(sampleBufferRef);
@@ -314,8 +330,10 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
                     currentChannel = (currentChannel + 1) % channelCount;
                 }
                 CFRelease(sampleBufferRef);
-                
-//                timeTakenProcessing += (CACurrentMediaTime() - copy);
+
+#if SCWaveformDebug
+                timeTakenProcessing += (CACurrentMediaTime() - copy);
+#endif
             }
         }
         
@@ -329,9 +347,14 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
         }
         
         free(addedSamples);
-        
-//        NSLog(@"Read %lld samples and generated %d cache entries (timePerPixel: %fs, samplesPerPixel: %d)", sampleRead, (int)(data.length / sizeof(float)), CMTimeGetSeconds(_timePerPixel), (int)samplesPerPixel);
-//        NSLog(@"Duration requested: %fs, actual got: %fs", CMTimeGetSeconds(timeRange.duration), CMTimeGetSeconds(CMTimeMultiply(_timePerPixel, (int)(data.length / sizeof(float)))));
+
+#if SCWaveformDebug
+        for (NSUInteger i = 0; i < channelCount; i++) {
+            NSData *data = [channelsData objectAtIndex:i];
+            NSLog(@"Read %lld samples and generated %d cache entries (timePerPixel: %fs, samplesPerPixel: %d)", sampleRead, (int)(data.length / sizeof(float)), CMTimeGetSeconds(_timePerPixel), (int)samplesPerPixel);
+            NSLog(@"Duration requested: %fs, actual got: %fs", CMTimeGetSeconds(timeRange.duration), CMTimeGetSeconds(CMTimeMultiply(_timePerPixel, (int)(data.length / sizeof(float)))));
+        }
+#endif
         
         for (int i = 0; i < channelCount; i++) {
             NSMutableData *data = [channelsData objectAtIndex:i];
@@ -345,7 +368,9 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
             }
         }
 
-//        NSLog(@"Read file in %fs (copy: %fs, processing: %fs)", (float)(CACurrentMediaTime() - start), (float)timeTakenCopy, (float)timeTakenProcessing);
+#if SCWaveformDebug
+        NSLog(@"Read file in %fs (copy: %fs, processing: %fs)", (float)(CACurrentMediaTime() - start), (float)timeTakenCopy, (float)timeTakenProcessing);
+#endif
         
         if (shouldSetStartTime) {
             if (CMTIME_IS_VALID(beginTime)) {
@@ -367,9 +392,11 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
                 _actualAssetDuration = [self cacheDuration];
             }
         }
-        
-//        NSLog(@"Read timeRange %fs to %fs. New cache duration: %fs (end bounds: %fs), asset duration :%fs", CMTimeGetSeconds(timeRange.start), CMTimeGetSeconds(CMTimeAdd(timeRange.start, timeRange.duration)),
-//              CMTimeGetSeconds([self cacheDuration]), CMTimeGetSeconds(CMTimeAdd(_cachedStartTime, [self cacheDuration])), CMTimeGetSeconds([self actualAssetDuration]));
+
+#if SCWaveformDebug
+        NSLog(@"Read timeRange %fs to %fs. New cache duration: %fs (end bounds: %fs), asset duration :%fs", CMTimeGetSeconds(timeRange.start), CMTimeGetSeconds(CMTimeAdd(timeRange.start, timeRange.duration)),
+              CMTimeGetSeconds([self cacheDuration]), CMTimeGetSeconds(CMTimeAdd(_cachedStartTime, [self cacheDuration])), CMTimeGetSeconds([self actualAssetDuration]));
+#endif
     }
     
     
