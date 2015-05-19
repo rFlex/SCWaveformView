@@ -44,7 +44,7 @@
     _cachedStartTime = kCMTimeInvalid;
     _channelsCachedData = [NSMutableArray new];
     
-    for (int i = 0; i < _maxChannels; i++) {
+    for (NSUInteger i = 0; i < _maxChannels; i++) {
         [_channelsCachedData addObject:[NSMutableData new]];
     }
     _readEndOfAsset = NO;
@@ -116,7 +116,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
     UInt32 channelCount;
     NSArray *formatDesc = songTrack.formatDescriptions;
     UInt32 sampleRate = 0;
-    for (unsigned int i = 0; i < [formatDesc count]; ++i) {
+    for (NSUInteger i = 0; i < [formatDesc count]; ++i) {
         CMAudioFormatDescriptionRef item = (__bridge CMAudioFormatDescriptionRef)[formatDesc objectAtIndex:i];
         const AudioStreamBasicDescription* fmtDesc = CMAudioFormatDescriptionGetStreamBasicDescription(item);
         
@@ -234,7 +234,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
         NSUInteger addedSampleCount = 0;
         NSMutableArray *channelsData = [NSMutableArray new];
         
-        for (int i = 0; i < channelCount; i++) {
+        for (NSUInteger i = 0; i < channelCount; i++) {
             [channelsData addObject:[NSMutableData new]];
         }
         
@@ -279,7 +279,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
                 int currentChannel = 0;
                 Float32 sample = 0;
                 
-                for (int i = 0; i < sampleCount; i++) {
+                for (NSUInteger i = 0; i < sampleCount; i++) {
                     sample = *samples;
                     
                     BOOL isLastChannel = currentChannel + 1 == channelCount;
@@ -338,7 +338,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
         }
         
         if (addedSampleCount != 0 && isLastSegment) {
-            for (int i = 0; i < channelCount; i++) {
+            for (NSUInteger i = 0; i < channelCount; i++) {
                 float averageSample = SCDecibelAverage(addedSamples[i], addedSampleCount);
                 NSMutableData *data = [channelsData objectAtIndex:i];
 
@@ -356,7 +356,7 @@ static float SCDecibelAverage(double sample, NSUInteger sampleCount) {
         }
 #endif
         
-        for (int i = 0; i < channelCount; i++) {
+        for (NSUInteger i = 0; i < channelCount; i++) {
             NSMutableData *data = [channelsData objectAtIndex:i];
             NSMutableData *cachedData = [_channelsCachedData objectAtIndex:i];
             
