@@ -69,6 +69,10 @@ static char *ScrollableWaveformContentOffsetContext = "ScrollableWaveformContent
 //            NSLog(@"Updating timeRange to %fs", CMTimeGetSeconds(newStart));
 
             _waveformView.timeRange = CMTimeRangeMake(newStart, _waveformView.timeRange.duration);
+            
+            if (self.shouldUpdateProgressTime) {
+                self.waveformView.progressTime = newStart;
+            }
         }
     }
 }
