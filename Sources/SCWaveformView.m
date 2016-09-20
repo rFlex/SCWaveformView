@@ -12,11 +12,14 @@
 #define noiseFloor (-50.0)
 
 #if !defined __IPHONE_10_0 || __IPHONE_OS_VERSION_MAX_ALLOWED < __IPHONE_10_0
-@protocol CALayerDelegate
+@protocol SCLayerDelegate
+@end
+#else
+@protocol SCLayerDelegate<CALayerDelegate>
 @end
 #endif
 
-@interface SCWaveformLayerDelegate : NSObject<CALayerDelegate>
+@interface SCWaveformLayerDelegate : NSObject<SCLayerDelegate>
 
 @end
 
