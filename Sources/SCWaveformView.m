@@ -11,7 +11,17 @@
 
 #define noiseFloor (-50.0)
 
-@interface SCWaveformLayer : CALayer
+#if !defined __IPHONE_10_0 || __IPHONE_OS_VERSION_MAX_ALLOWED < __IPHONE_10_0
+@protocol SCLayerDelegate
+@end
+#else
+@protocol SCLayerDelegate<CALayerDelegate>
+@end
+#endif
+
+@interface SCWaveformLayerDelegate : NSObject<SCLayerDelegate>
+
+@end
 
 @property (assign, nonatomic) CMTime waveformTime;
 
