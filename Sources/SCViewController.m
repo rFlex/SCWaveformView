@@ -9,19 +9,30 @@
 #import "SCViewController.h"
 #import "SCWaveformView.h"
 
-@interface SCViewController () {
+static Float64 const defaultMaxAudioTime = 20.0;
+
+@interface SCViewController () <UIScrollViewDelegate> {
     AVPlayer *_player;
     id _observer;
 }
+
+@property (nonatomic, assign) Float64 maxAudioTime;
 
 @end
 
 @implementation SCViewController
 
-- (void)viewDidLoad
-{
+- (void)awakeFromNib {
+    self.maxAudioTime = defaultMaxAudioTime;
+}
+
+- (void)viewDidLoad {
     [super viewDidLoad];
 
+    // should need update for scrolling
+    self.scrollableWaveformView.shouldUpdateProgressTime = YES;
+    
+    self.scrollableWaveformView.delegate = self;
     self.scrollableWaveformView.waveformView.precision = 1;
     self.scrollableWaveformView.waveformView.lineWidthRatio = 1;
     self.scrollableWaveformView.waveformView.normalColor = [UIColor colorWithRed:0.8 green:0.3 blue:0.3 alpha:1];
@@ -36,14 +47,27 @@
                                                 self.slider.value * CMTimeGetSeconds(self.scrollableWaveformView.waveformView.asset.duration),
                                                 100000);
     
-    self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(CMTimeMakeWithSeconds(15, 10000), progressTime);
+    self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(CMTimeMakeWithSeconds(self.maxAudioTime, 10000), progressTime);
     
     _player = [AVPlayer playerWithPlayerItem:[AVPlayerItem playerItemWithAsset:asset]];
     
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_playReachedEnd:) name:AVPlayerItemDidPlayToEndTimeNotification object:_player.currentItem];
     
     __unsafe_unretained SCViewController *mySelf = self;
+    __unsafe_unretained AVPlayer *myPlayer = _player;
     _observer = [_player addPeriodicTimeObserverForInterval:CMTimeMake(1, 60) queue:dispatch_get_main_queue() usingBlock:^(CMTime time) {
+        
+        time = CMTimeMake(time.value + mySelf.scrollableWaveformView.waveformView.timeRange.start.value, (time.timescale + mySelf.scrollableWaveformView.waveformView.timeRange.start.timescale));
+        
+        Float64 currentTime = CMTimeGetSeconds(myPlayer.currentTime);
+        
+        Float64 maxTime = CMTimeGetSeconds(mySelf.scrollableWaveformView.waveformView.timeRange.start) + self.maxAudioTime;
+        
+        if (currentTime >= maxTime) {
+            time = mySelf.scrollableWaveformView.waveformView.timeRange.start;
+            [myPlayer seekToTime:time];
+        }
+        
         mySelf.scrollableWaveformView.waveformView.progressTime = time;
     }];
 }
@@ -104,6 +128,35 @@
     }
     
     self.scrollableWaveformView.waveformView.timeRange = CMTimeRangeMake(start, duration);
+}
+
+#pragma mark - UIScrollView Delegate
+
+- (void)didScroll {
+    [_player pause];
+}
+
+- (void)didEndScroll {
+    
+    CMTime time = self.scrollableWaveformView.waveformView.timeRange.start;
+    [_player seekToTime:time];
+    self.scrollableWaveformView.waveformView.progressTime = time;
+    
+    [_player play];
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView {
+    [self didScroll];
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    [self didEndScroll];
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
+    if (!decelerate) {
+        [self didEndScroll];
+    }
 }
 
 @end

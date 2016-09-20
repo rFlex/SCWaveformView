@@ -18,4 +18,7 @@
  */
 @property (readonly, nonatomic) SCWaveformView *waveformView;
 
+// Default is NO
+@property (assign, nonatomic) BOOL shouldUpdateProgressTime;
+
 @end
