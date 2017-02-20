@@ -19,21 +19,16 @@
 @end
 #endif
 
-@interface SCWaveformLayerDelegate : NSObject<SCLayerDelegate>
-
-@end
+@interface SCWaveformLayer : CALayer
 
 @property (assign, nonatomic) CMTime waveformTime;
 
 @end
 
 @implementation SCWaveformLayer
-
-
 @end
 
-@interface SCWaveformLayerDelegate : NSObject
-
+@interface SCWaveformLayerDelegate : NSObject<SCLayerDelegate>
 @end
 
 @implementation SCWaveformLayerDelegate
@@ -83,6 +78,7 @@
 
     _waveformLayersDelegate = [SCWaveformLayerDelegate new];
     _timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
+    _progressTimeRange = _timeRange;
     _progressTime = kCMTimeZero;
     
     _cache = [SCWaveformCache new];
@@ -229,7 +225,9 @@
                 
                 CGColorRef destColor = nil;
                 
-                if (CMTIME_COMPARE_INLINE(time, >=, _progressTime)) {
+                if (CMTIME_COMPARE_INLINE(time, >=, _progressTime)
+                 || CMTIME_COMPARE_INLINE(time, < , _progressTimeRange.start)
+                 || CMTIME_COMPARE_INLINE(time, > , CMTimeAdd(_progressTimeRange.start, _progressTimeRange.duration))) {
                     destColor = normalColor;
                 } else {
                     destColor = progressColor;
@@ -295,7 +293,9 @@
         for (SCWaveformLayer *layer in layers) {
             if (updateColor) {
                 CGColorRef destColor = progressColor;
-                if (CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)) {
+                if (CMTIME_COMPARE_INLINE(layer.waveformTime, >, _progressTime)
+                 || CMTIME_COMPARE_INLINE(layer.waveformTime, <, _progressTimeRange.start)
+                 || CMTIME_COMPARE_INLINE(layer.waveformTime, >, CMTimeAdd(_progressTimeRange.start, _progressTimeRange.duration))) {
                     destColor = normalColor;
                 }
                 
@@ -362,6 +362,16 @@
     [self setNeedsLayout];
     
     [self didChangeValueForKey:@"timeRange"];
+}
+
+- (void)setProgressTimeRange:(CMTimeRange)progressTimeRange {
+    [self willChangeValueForKey:@"progressTimeRange"];
+    
+    _progressTimeRange = progressTimeRange;
+    
+    [self setNeedsLayout];
+    
+    [self didChangeValueForKey:@"progressTimeRange"];
 }
 
 - (void)setPrecision:(CGFloat)precision {

@@ -68,6 +68,14 @@
 @property (assign, nonatomic) CMTimeRange timeRange;
 
 /**
+ The progressTimeRange defines an interval between which
+ the progressColor can be applied to the waveform.
+ 
+ Default is kCMTimeZero, kCMTimePositiveInfinity
+ */
+@property (assign, nonatomic) CMTimeRange progressTimeRange;
+
+/**
  The first audio channel index to render.
  Default is 0
  */
