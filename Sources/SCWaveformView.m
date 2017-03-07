@@ -23,16 +23,13 @@
 
 @end
 
+@interface SCWaveformLayer : CALayer
+
 @property (assign, nonatomic) CMTime waveformTime;
 
 @end
 
 @implementation SCWaveformLayer
-
-
-@end
-
-@interface SCWaveformLayerDelegate : NSObject
 
 @end
 
